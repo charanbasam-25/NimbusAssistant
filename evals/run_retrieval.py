@@ -60,7 +60,7 @@ def load_questions(path: Path) -> list[dict[str, Any]]:
         missing = required - item.keys()
         if missing:
             raise ValueError(f"{path}:{line_number}: missing fields: {sorted(missing)}")
-        unknown = item.keys() - required - {"notes"}
+        unknown = item.keys() - required - {"notes", "expected_code_sources"}
         if unknown:
             raise ValueError(f"{path}:{line_number}: unknown fields: {sorted(unknown)}")
         if not isinstance(item["id"], str) or not item["id"].strip():
@@ -84,6 +84,20 @@ def load_questions(path: Path) -> list[dict[str, Any]]:
             raise ValueError(f"{path}:{line_number}: source paths must be non-empty strings")
         if len(set(item["relevant_source_paths"])) != len(item["relevant_source_paths"]):
             raise ValueError(f"{path}:{line_number}: relevant source paths must be unique")
+        if "expected_code_sources" in item:
+            expected_code_sources = item["expected_code_sources"]
+            if not isinstance(expected_code_sources, list) or not expected_code_sources:
+                raise ValueError(
+                    f"{path}:{line_number}: expected_code_sources must be a non-empty list"
+                )
+            if not all(isinstance(source, str) and source for source in expected_code_sources):
+                raise ValueError(
+                    f"{path}:{line_number}: expected code source paths must be non-empty strings"
+                )
+            if len(set(expected_code_sources)) != len(expected_code_sources):
+                raise ValueError(
+                    f"{path}:{line_number}: expected code source paths must be unique"
+                )
         if item["id"] in seen_ids:
             raise ValueError(f"{path}:{line_number}: duplicate id {item['id']!r}")
         seen_ids.add(item["id"])
@@ -95,12 +109,25 @@ def load_questions(path: Path) -> list[dict[str, Any]]:
 
 
 def retrieve_keyword_baseline(
-    connection: psycopg.Connection[Any], question: dict[str, Any], limit: int
-) -> list[str]:
+    connection: psycopg.Connection[Any],
+    question: dict[str, Any],
+    limit: int,
+    query_mode: str = "and",
+) -> list[dict[str, Any]]:
     # Reuse production search so the evaluation measures the same retrieval logic.
-    passages = search_chunks(connection, question["query"], question["persona"], limit)
-    # The labels are document paths, so collapse repeated chunks from the same page.
-    return list(dict.fromkeys(passage["source_path"] for passage in passages))
+    return search_chunks(
+        connection, question["query"], question["persona"], limit, query_mode=query_mode
+    )
+
+
+def score_code_retrieval(
+    passages: list[dict[str, Any]], expected_code_sources: list[str], k: int
+) -> float:
+    """Return 1 when a top-k passage contains one of the expected code files."""
+    top_content = "\n".join(str(passage["content"]) for passage in passages[:k])
+    return float(
+        any(f"[Example source: {source_path}]" in top_content for source_path in expected_code_sources)
+    )
 
 
 def score_retrieval(retrieved: list[str], relevant: set[str], k: int) -> dict[str, float]:
@@ -132,6 +159,12 @@ def main() -> None:
     parser.add_argument("--dataset", type=Path, required=True)
     parser.add_argument("--output", type=Path)
     parser.add_argument("--k", type=int, default=5)
+    parser.add_argument(
+        "--query-mode",
+        choices=("and", "or"),
+        default="and",
+        help="use strict all-term matching (and) or experimental any-term matching (or)",
+    )
     args = parser.parse_args()
     if args.k < 1:
         parser.error("--k must be at least 1")
@@ -140,21 +173,29 @@ def main() -> None:
     results = []
     with psycopg.connect(database_url()) as connection:
         for question in questions:
-            retrieved = retrieve_keyword_baseline(connection, question, args.k)
+            passages = retrieve_keyword_baseline(
+                connection, question, args.k, query_mode=args.query_mode
+            )
+            # The labels are document paths, so collapse repeated chunks from the same page.
+            retrieved = list(dict.fromkeys(passage["source_path"] for passage in passages))
             metrics = score_retrieval(
                 retrieved,
                 set(question["relevant_source_paths"]),
                 args.k,
             )
-            results.append(
-                {
-                    "id": question["id"],
-                    "provenance": question["provenance"],
-                    "slice": question["slice"],
-                    "retrieved_source_paths": retrieved,
-                    "metrics": metrics,
-                }
-            )
+            result = {
+                "id": question["id"],
+                "provenance": question["provenance"],
+                "slice": question["slice"],
+                "retrieved_source_paths": retrieved,
+                "metrics": metrics,
+            }
+            if "expected_code_sources" in question:
+                result["expected_code_sources"] = question["expected_code_sources"]
+                result["code_hit_at_k"] = score_code_retrieval(
+                    passages, question["expected_code_sources"], args.k
+                )
+            results.append(result)
 
     grouped: dict[str, list[dict[str, Any]]] = defaultdict(list)
     for result in results:
@@ -163,12 +204,19 @@ def main() -> None:
         grouped[f"slice:{result['slice']}"].append(result)
 
     report = {
-        "baseline": "postgresql_full_text_ts_rank_cd",
+        "baseline": f"postgresql_full_text_ts_rank_cd_{args.query_mode}",
+        "query_mode": args.query_mode,
         "k": args.k,
         "dataset": str(args.dataset),
         "summary": {key: aggregate(rows) for key, rows in sorted(grouped.items())},
         "results": results,
     }
+    code_rows = [result for result in results if "code_hit_at_k" in result]
+    if code_rows:
+        report["code_example_summary"] = {
+            "questions": len(code_rows),
+            "hit_at_k": mean(result["code_hit_at_k"] for result in code_rows),
+        }
     rendered = json.dumps(report, indent=2, sort_keys=True)
     if args.output:
         args.output.parent.mkdir(parents=True, exist_ok=True)

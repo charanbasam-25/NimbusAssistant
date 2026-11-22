@@ -108,21 +108,25 @@ dataset:
 ```bash
 uv --project apps/api run python evals/run_retrieval.py \
   --dataset evals/datasets/retrieval.jsonl \
+  --query-mode and \
   --output evals/reports/keyword-baseline.json
 ```
+
+Use `--query-mode or` to run the experimental any-term matcher. The current
+15-question synthetic comparison favored the default AND matcher overall, so
+OR remains an evaluation option and is not used by the API.
 
 The runner reads database settings from the root `.env` file. It reports
 Recall@5, nDCG@5, and MRR overall, by provenance, and for the `short_query`
 slice. Metrics are calculated at source-document level using binary relevance.
 
-The starter dataset now includes three synthetic code-retrieval probes for
-request bodies, JWT bearer authentication, and file uploads. These labels score
-whether the expected source page is retrieved; they do not automatically check
-whether a returned passage contains the expected code file. We manually
-inspected those passages as a smoke test. Focused technical-term queries found
-all three expected code passages at rank 1, but natural-language variants were
-less reliable, so this should be treated as a limitation to evaluate—not as a
-quality claim.
+Questions can optionally include `expected_code_sources`, a list of source
+paths expected inside returned code passages. For those rows, the report adds
+`code_hit_at_k` per question and a `code_example_summary` hit rate. This is
+separate from source-page Recall@k: a page can rank while its relevant code
+chunk does not. The starter set has three focused technical-term probes and
+six natural-language paraphrases; all are synthetic and are not a substitute
+for real user questions.
 
 ## Planned suites
 

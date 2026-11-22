@@ -9,8 +9,10 @@ class FakeConnection:
     def __init__(self, rows):
         self.rows = rows
         self.parameters = None
+        self.query = None
 
-    def execute(self, _query, parameters):
+    def execute(self, query, parameters):
+        self.query = query
         self.parameters = parameters
         return self
 
@@ -71,3 +73,18 @@ def test_search_chunks_applies_persona_scope() -> None:
     search_chunks(connection, "security scopes", "R1", 5)
 
     assert connection.parameters[1:3] == (["public", "internal"], ["global", "R1"])
+
+
+def test_or_query_mode_builds_any_term_query() -> None:
+    connection = FakeConnection([])
+
+    search_chunks(connection, "Pydantic body", "guest", 5, query_mode="or")
+
+    assert "string_agg" in connection.query
+    assert " | " in connection.query
+    assert connection.parameters == ("Pydantic body", ["public"], ["global"], 5)
+
+
+def test_search_chunks_rejects_unknown_query_mode() -> None:
+    with pytest.raises(ValueError, match="query_mode"):
+        search_chunks(FakeConnection([]), "valid query", "guest", 5, query_mode="other")

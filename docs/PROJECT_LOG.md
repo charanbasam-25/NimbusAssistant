@@ -265,6 +265,65 @@ before claiming robust code-example search.
 **Next:** Expand the synthetic evaluation with natural phrasings and diagnose
 keyword-query brittleness before comparing vector retrieval.
 
+### 10. Measure natural-language code retrieval — 2026-11-22
+
+**Goal:** Extend retrieval evaluation beyond source-page hits and measure
+whether the expected included-code passage itself appears in the top results.
+
+**What changed:** Added six natural-language paraphrases for request-body,
+JWT, and file-upload code questions. Evaluation records can now include
+`expected_code_sources`; `run_retrieval.py` reports `code_hit_at_k` per
+question plus a code-example hit rate. The JSON schema and tests were updated.
+
+**How we checked it:** All 17 API and evaluation tests passed. The 15-question
+synthetic set ran successfully: overall source-page Recall@5 was **0.733**,
+nDCG@5 **0.626**, and MRR **0.589**. Of 9 code-example checks, code hit@5 was
+**4/9**. The three focused technical-term probes hit their expected code
+passages (3/3); natural paraphrases hit only 1/6, and only 2/6 retrieved the
+expected source page at all. This is a small synthetic diagnostic set, not a
+quality claim about real user questions.
+
+**Finding:** The production query uses PostgreSQL `plainto_tsquery('english',
+...)`; PostgreSQL connects surviving query words with AND, so adding a synonym
+or a word absent from the indexed page can eliminate otherwise relevant
+matches. See [PostgreSQL text-search controls](https://www.postgresql.org/docs/18/textsearch-controls.html).
+
+**Blocker / resolution:** Code include ingestion works; keyword retrieval is
+not robust to these natural paraphrases yet. The new code-passage metric makes
+that failure visible separately from source-page retrieval. Test a controlled
+keyword-query improvement against this same set before comparing embeddings.
+
+**Next:** Compare one measured keyword-query adjustment with the current
+baseline, retaining both source-page and code-passage metrics.
+
+### 11. Compare an OR-term keyword query — 2026-11-22
+
+**Goal:** Test whether allowing any query term to match improves the natural
+paraphrase failures without changing the production default.
+
+**What changed:** Added an experimental `query_mode="or"` to the shared search
+function and `--query-mode or` to the evaluation runner. It builds an OR query
+from individually normalized terms using PostgreSQL text-search functions.
+The default remains the original AND query; the API does not opt into the
+experiment.
+
+**How we checked it:** The same 15 synthetic questions were evaluated in both
+modes. AND scored source-page Recall@5 **0.733**, nDCG@5 **0.626**, MRR **0.589**,
+and code hit@5 **4/9**. OR scored Recall@5 **0.533**, nDCG@5 **0.429**, MRR
+**0.394**, and code hit@5 **3/9**. OR did retrieve the expected upload code for
+both natural upload paraphrases (2/6 natural code checks versus 1/6 under AND),
+but it lost many focused and general matches. All 19 tests passed, and the OR
+evaluation ran successfully against the local database.
+
+**Blocker / resolution:** Global OR matching is not a suitable replacement for
+the AND baseline on this set. Keep AND as production default; retain OR only as
+an evaluation option. The paraphrase failures likely need semantic retrieval
+or a carefully measured hybrid rather than indiscriminately broadening terms.
+
+**Next:** Implement vector retrieval as a separate candidate and compare it
+with the unchanged AND baseline using the same source-page and code-passage
+metrics.
+
 ## Concepts in plain language
 
 - **Corpus:** the collection of documents Nimbus is allowed to search.
@@ -360,8 +419,8 @@ explanation and a concrete Nimbus example when available.
 
 ## Next milestones
 
-1. Expand realistic retrieval questions and diagnose query-wording
-   sensitivity, especially for code examples.
+1. Implement vector retrieval and compare it with the unchanged AND baseline
+   using source-page and code-passage metrics.
 2. Choose an embedding model and record its revision, vector dimensions,
    normalization, and cost/device constraints before generating vectors.
 3. Implement vector retrieval and compare it with the keyword baseline.
