@@ -6,6 +6,7 @@
   "selected_on": "2026-11-22",
   "documentation_root": "docs/en/docs",
   "allowed_extensions": [".md"],
+  "excluded_paths": ["_llm-test.md"],
   "default_access_tags": {
     "audience": "public",
     "region": "global"
@@ -13,6 +14,7 @@
   "license": "MIT",
   "notes": [
     "This is a pinned snapshot; do not follow the moving master branch during ingestion.",
+    "Exclude docs/en/docs/_llm-test.md because it documents upstream translation QA rather than FastAPI usage.",
     "Synthetic R1, R2, internal, poisoned, and PII fixtures must be kept separate from upstream content.",
     "Verify documentation_root and license files against this exact commit during ingestion setup."
   ]

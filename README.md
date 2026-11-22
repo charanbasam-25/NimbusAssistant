@@ -27,8 +27,12 @@ submission.
 - `apps/api/` - FastAPI backend
 - `apps/web/` - Next.js client
 - `infra/` - Docker Compose and service configuration
-- `docs/` - architecture decisions, data card, evaluation evidence, and demo notes
+- `docs/` - [project log](docs/PROJECT_LOG.md), architecture decisions, data
+  card, evaluation evidence, and demo notes
 
 ## Status
 
-Week 1 - corpus selected and repository initialized.
+The FastAPI documentation corpus is loaded, and a PostgreSQL keyword-retrieval
+baseline with a small synthetic evaluation set is in place. Embeddings and
+answer generation are the next major RAG stages. See the
+[project log](docs/PROJECT_LOG.md) for progress and the next steps.

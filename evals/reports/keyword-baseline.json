@@ -1,0 +1,124 @@
+{
+  "baseline": "postgresql_full_text_ts_rank_cd",
+  "dataset": "evals/datasets/retrieval.jsonl",
+  "k": 5,
+  "results": [
+    {
+      "id": "synthetic-body-001",
+      "metrics": {
+        "mrr": 0.5,
+        "ndcg": 0.6309297535714575,
+        "recall": 1.0
+      },
+      "provenance": "synthetic",
+      "retrieved_source_paths": [
+        "tutorial/security/get-current-user.md",
+        "tutorial/body.md",
+        "advanced/path-operation-advanced-configuration.md",
+        "advanced/using-request-directly.md"
+      ],
+      "slice": "general"
+    },
+    {
+      "id": "synthetic-query-params-001",
+      "metrics": {
+        "mrr": 0.5,
+        "ndcg": 0.6309297535714575,
+        "recall": 1.0
+      },
+      "provenance": "synthetic",
+      "retrieved_source_paths": [
+        "tutorial/query-params-str-validations.md",
+        "tutorial/query-params.md"
+      ],
+      "slice": "general"
+    },
+    {
+      "id": "synthetic-path-params-001",
+      "metrics": {
+        "mrr": 1.0,
+        "ndcg": 1.0,
+        "recall": 1.0
+      },
+      "provenance": "synthetic",
+      "retrieved_source_paths": [
+        "tutorial/path-params.md"
+      ],
+      "slice": "general"
+    },
+    {
+      "id": "synthetic-response-model-001",
+      "metrics": {
+        "mrr": 0.5,
+        "ndcg": 0.6309297535714575,
+        "recall": 1.0
+      },
+      "provenance": "synthetic",
+      "retrieved_source_paths": [
+        "advanced/custom-response.md",
+        "tutorial/response-model.md",
+        "release-notes.md",
+        "advanced/response-change-status-code.md"
+      ],
+      "slice": "general"
+    },
+    {
+      "id": "synthetic-first-steps-001",
+      "metrics": {
+        "mrr": 0.3333333333333333,
+        "ndcg": 0.5,
+        "recall": 1.0
+      },
+      "provenance": "synthetic",
+      "retrieved_source_paths": [
+        "index.md",
+        "fastapi-cli.md",
+        "tutorial/first-steps.md",
+        "tutorial/frontend.md"
+      ],
+      "slice": "short_query"
+    },
+    {
+      "id": "synthetic-oauth-scopes-001",
+      "metrics": {
+        "mrr": 1.0,
+        "ndcg": 1.0,
+        "recall": 1.0
+      },
+      "provenance": "synthetic",
+      "retrieved_source_paths": [
+        "advanced/security/oauth2-scopes.md",
+        "reference/dependencies.md",
+        "release-notes.md",
+        "tutorial/security/oauth2-jwt.md"
+      ],
+      "slice": "general"
+    }
+  ],
+  "summary": {
+    "overall": {
+      "mrr": 0.6388888888888888,
+      "ndcg_at_k": 0.7321315434523954,
+      "questions": 6,
+      "recall_at_k": 1.0
+    },
+    "provenance:synthetic": {
+      "mrr": 0.6388888888888888,
+      "ndcg_at_k": 0.7321315434523954,
+      "questions": 6,
+      "recall_at_k": 1.0
+    },
+    "slice:general": {
+      "mrr": 0.7,
+      "ndcg_at_k": 0.7785578521428745,
+      "questions": 5,
+      "recall_at_k": 1.0
+    },
+    "slice:short_query": {
+      "mrr": 0.3333333333333333,
+      "ndcg_at_k": 0.5,
+      "questions": 1,
+      "recall_at_k": 1.0
+    }
+  }
+}

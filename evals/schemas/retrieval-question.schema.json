@@ -1,0 +1,46 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://nimbus.local/schemas/retrieval-question.schema.json",
+  "title": "Nimbus retrieval evaluation question",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "id",
+    "query",
+    "relevant_source_paths",
+    "persona",
+    "slice",
+    "provenance"
+  ],
+  "properties": {
+    "id": {
+      "type": "string",
+      "minLength": 1
+    },
+    "query": {
+      "type": "string",
+      "minLength": 3
+    },
+    "relevant_source_paths": {
+      "type": "array",
+      "minItems": 1,
+      "uniqueItems": true,
+      "items": {
+        "type": "string",
+        "minLength": 1
+      }
+    },
+    "persona": {
+      "enum": ["guest", "R1", "R2"]
+    },
+    "slice": {
+      "enum": ["general", "short_query"]
+    },
+    "provenance": {
+      "enum": ["real", "synthetic"]
+    },
+    "notes": {
+      "type": "string"
+    }
+  }
+}
