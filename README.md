@@ -17,8 +17,10 @@ submission.
 - Source: `https://github.com/fastapi/fastapi`
 - Documentation: `https://fastapi.tiangolo.com/`
 - License: MIT
-- Reproducibility rule: ingestion will use a pinned Git commit, recorded in the
-  corpus manifest.
+- Pinned snapshot: `05e6df7e906c3decba377c37548019973f40bf15` (selected 2026-11-22)
+- Manifest: `docs/corpus-manifest.json`
+- Reproducibility rule: ingestion uses the pinned Git commit, not the moving
+  `master` branch.
 
 ## Initial layout
 

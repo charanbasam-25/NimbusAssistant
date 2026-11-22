@@ -1,0 +1,19 @@
+{
+  "corpus_name": "fastapi-documentation",
+  "source_repository": "https://github.com/fastapi/fastapi.git",
+  "source_commit": "05e6df7e906c3decba377c37548019973f40bf15",
+  "source_branch_at_selection": "master",
+  "selected_on": "2026-11-22",
+  "documentation_root": "docs/en/docs",
+  "allowed_extensions": [".md"],
+  "default_access_tags": {
+    "audience": "public",
+    "region": "global"
+  },
+  "license": "MIT",
+  "notes": [
+    "This is a pinned snapshot; do not follow the moving master branch during ingestion.",
+    "Synthetic R1, R2, internal, poisoned, and PII fixtures must be kept separate from upstream content.",
+    "Verify documentation_root and license files against this exact commit during ingestion setup."
+  ]
+}
