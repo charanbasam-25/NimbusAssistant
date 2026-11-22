@@ -81,10 +81,26 @@ design rather than adding its sample tenant and role policy:
   `tenant_id` and `allowed_roles` are intentionally not added: they are not part
   of the current corpus/access design. The API searches only public/global docs.
 
-Chunking groups Markdown paragraphs under their headings, up to 600
-regex-counted lexical tokens. An oversized paragraph is split into windows of
-about 450 words with up to 80 words of overlap. This is a versioned baseline,
-not a claim that these sizes are optimal for every document.
+Chunking groups Markdown paragraphs under their headings, with a hard cap of
+600 regex-counted lexical tokens. Only oversized paragraphs are split, using
+up to 80 lexical tokens of overlap and preferring line boundaries where
+possible. Regression tests are in `evals/test_ingest_corpus.py`; run them with:
+
+```bash
+uv run --project apps/api pytest evals/test_ingest_corpus.py
+```
+
+The ingestion step also expands standalone FastAPI code-include directives
+from the pinned checkout. It accepts only source paths under `docs_src/` or
+`fastapi/`, and rejects missing files or paths outside those directories. The
+resolver supports upstream `hl[...]`, `ln[...]`, and `title[...]` annotations;
+highlight annotations do not filter out the rest of the source file.
+
+The resolver and chunker were simulated against all 158 included files from
+the pinned corpus: 455 includes expanded to 2,270 chunks, with none above 600
+tokens. The corpus was re-ingested, so these are now the database chunks as
+well. Chunk-size settings remain a baseline, not a proven optimum; code-answer
+retrieval still needs to be checked against evaluation questions.
 
 Run from the repository root after ingestion and after creating the labeled
 dataset:
@@ -98,6 +114,15 @@ uv --project apps/api run python evals/run_retrieval.py \
 The runner reads database settings from the root `.env` file. It reports
 Recall@5, nDCG@5, and MRR overall, by provenance, and for the `short_query`
 slice. Metrics are calculated at source-document level using binary relevance.
+
+The starter dataset now includes three synthetic code-retrieval probes for
+request bodies, JWT bearer authentication, and file uploads. These labels score
+whether the expected source page is retrieved; they do not automatically check
+whether a returned passage contains the expected code file. We manually
+inspected those passages as a smoke test. Focused technical-term queries found
+all three expected code passages at rank 1, but natural-language variants were
+less reliable, so this should be treated as a limitation to evaluate—not as a
+quality claim.
 
 ## Planned suites
 

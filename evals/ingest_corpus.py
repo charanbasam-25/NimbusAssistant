@@ -20,9 +20,15 @@ ROOT = Path(__file__).resolve().parents[1]
 MANIFEST_PATH = ROOT / "docs" / "corpus-manifest.json"
 TOKEN_PATTERN = re.compile(r"\w+|[^\w\s]", re.UNICODE)
 MAX_CHUNK_LEXICAL_TOKENS = 600
-CHUNK_OVERLAP_WORDS = 80
-PARSER_VERSION = "markdown-structure-v1"
-CHUNKER_VERSION = "heading-paragraph-600-token-v1"
+CHUNK_OVERLAP_TOKENS = 80
+PARSER_VERSION = "markdown-includes-v2"
+CHUNKER_VERSION = "heading-paragraph-lexical-600-v2"
+INCLUDE_PATTERN = re.compile(
+    r"(?m)^[ \t]*\{\*[ \t]*(?P<body>[^\r\n]*?)[ \t]*\*\}[ \t]*$"
+)
+INCLUDE_OPTION_PATTERN = re.compile(
+    r'\s*(?:hl\[[0-9,: \-]+\]|ln\[[0-9,: \-]+\]|title\["[^"\r\n]*"\])'
+)
 
 
 def database_url() -> str:
@@ -89,6 +95,58 @@ def markdown_title(markdown: str, fallback: str) -> str:
     return fallback
 
 
+def expand_code_includes(markdown: str, docs_base: Path, source_root: Path) -> str:
+    """Replace FastAPI's code include directives with safe, labeled code blocks.
+
+    FastAPI's include paths are relative to ``docs/en``. The pinned corpus uses
+    examples under ``docs_src/`` and one reference under ``fastapi/``. Resolve
+    only inside those approved checkout roots, and reject unsupported options
+    rather than silently dropping directive information.
+    """
+    allowed_roots = tuple(
+        (source_root / directory).resolve() for directory in ("docs_src", "fastapi")
+    )
+
+    def replace(match: re.Match[str]) -> str:
+        body = match.group("body").strip()
+        path_match = re.match(r"(?P<path>\S+)(?P<options>.*)\Z", body)
+        if not path_match:
+            raise RuntimeError("Found an empty code include directive")
+
+        relative_path = path_match.group("path")
+        options = path_match.group("options").strip()
+        while options:
+            option_match = INCLUDE_OPTION_PATTERN.match(options)
+            if not option_match:
+                raise RuntimeError(
+                    f"Unsupported options in code include directive: {body}"
+                )
+            options = options[option_match.end() :].strip()
+
+        candidate = (docs_base / relative_path).resolve()
+        if not any(candidate.is_relative_to(allowed_root) for allowed_root in allowed_roots):
+            raise RuntimeError(
+                f"Code include must resolve inside an approved source directory: {relative_path}"
+            )
+        if not candidate.is_file():
+            raise RuntimeError(f"Code include file does not exist: {relative_path}")
+
+        code = candidate.read_text(encoding="utf-8").rstrip("\n")
+        # Use a longer Markdown fence if source code itself contains backticks.
+        longest_fence = max(
+            (len(run) for run in re.findall(r"`+", code)), default=0
+        )
+        fence = "`" * max(3, longest_fence + 1)
+        language = candidate.suffix.removeprefix(".")
+        source_label = candidate.relative_to(source_root.resolve()).as_posix()
+        return (
+            f"[Example source: {source_label}]\n"
+            f"{fence}{language}\n{code}\n{fence}"
+        )
+
+    return INCLUDE_PATTERN.sub(replace, markdown)
+
+
 def markdown_sections(markdown: str) -> list[tuple[str, str]]:
     """Return heading-tagged paragraphs, excluding front matter and heading syntax."""
     lines = markdown.splitlines()
@@ -122,14 +180,53 @@ def markdown_sections(markdown: str) -> list[tuple[str, str]]:
 
 
 def split_long_text(text: str, max_tokens: int) -> list[str]:
-    words = text.split()
-    if len(TOKEN_PATTERN.findall(text)) <= max_tokens:
+    """Split only oversized paragraphs, enforcing a hard lexical-token cap.
+
+    Prefer line boundaries (useful for Markdown tables and code) when they are
+    reasonably close to the cap. Fall back to exact token boundaries for a
+    single very long line. Overlap is measured in the same lexical tokens as
+    the cap, rather than whitespace-separated words.
+    """
+    matches = list(TOKEN_PATTERN.finditer(text))
+    if len(matches) <= max_tokens:
         return [text]
-    # Word windows are a predictable fallback for oversized code blocks or tables.
-    words_per_window = max(1, max_tokens * 3 // 4)
-    overlap = min(CHUNK_OVERLAP_WORDS, words_per_window // 4)
-    step = max(1, words_per_window - overlap)
-    return [" ".join(words[start : start + words_per_window]) for start in range(0, len(words), step)]
+
+    overlap = min(CHUNK_OVERLAP_TOKENS, max_tokens - 1)
+    chunks: list[str] = []
+    start = 0
+    while start < len(matches):
+        end = min(start + max_tokens, len(matches))
+
+        if end < len(matches):
+            # A line break between tokens marks a useful Markdown row/code-line
+            # boundary. Avoid tiny chunks by considering boundaries only in the
+            # latter half of this window.
+            min_end = start + max(1, (end - start) // 2)
+            line_ends = [
+                index
+                for index in range(min_end, end)
+                if "\n" in text[matches[index - 1].end() : matches[index].start()]
+            ]
+            if line_ends:
+                end = line_ends[-1]
+
+        chunks.append(text[matches[start].start() : matches[end - 1].end()])
+        if end == len(matches):
+            break
+
+        next_start = max(start + 1, end - overlap)
+        # If possible, start the overlap at a line boundary so table rows and
+        # code lines are not needlessly cut at the beginning of a chunk.
+        line_starts = [
+            index
+            for index in range(start + 1, next_start + 1)
+            if "\n" in text[matches[index - 1].end() : matches[index].start()]
+        ]
+        if line_starts:
+            next_start = line_starts[-1]
+        start = next_start
+
+    return chunks
 
 
 def make_chunks(markdown: str) -> list[dict[str, str | int | None]]:
@@ -203,11 +300,16 @@ def ingest(source_root: Path, manifest: dict) -> dict:
                 )
 
             for path in selected_files:
-                markdown = path.read_text(encoding="utf-8")
-                content_hash = hashlib.sha256(markdown.encode("utf-8")).hexdigest()
+                source_markdown = path.read_text(encoding="utf-8")
+                content_hash = hashlib.sha256(source_markdown.encode("utf-8")).hexdigest()
                 relative_path = path.relative_to(docs_dir)
                 source_path = relative_path.as_posix()
-                title = markdown_title(markdown, path.stem.replace("-", " ").title())
+                title = markdown_title(source_markdown, path.stem.replace("-", " ").title())
+                markdown = expand_code_includes(
+                    source_markdown,
+                    docs_base=docs_dir.parent,
+                    source_root=source_root,
+                )
                 chunks = make_chunks(markdown)
                 if not chunks:
                     continue
@@ -241,6 +343,11 @@ def ingest(source_root: Path, manifest: dict) -> dict:
                         Jsonb({"license": manifest["license"], "format": "markdown"}),
                     ),
                 ).fetchone()[0]
+
+                # Chunk boundaries may change when the chunker version changes.
+                # Remove prior rows first so stale higher ordinals cannot survive
+                # a re-ingestion with fewer chunks.
+                connection.execute("DELETE FROM chunks WHERE document_id = %s", (document_id,))
 
                 for ordinal, chunk in enumerate(chunks):
                     # Keep original text for keyword search, but give future embeddings
