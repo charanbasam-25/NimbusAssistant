@@ -1,6 +1,6 @@
 # Nimbus Cloud synthetic corpus specification
 
-**Status:** Planned (M2). This describes fictional test data; it is not a
+**Status:** Implemented and ingested (M2); access-evaluated (M3). This describes fictional test data; it is not a
 statement of real Nimbus Cloud or FastAPI policy.
 
 ## Purpose
@@ -130,7 +130,7 @@ internal-only access tests, and have a unique phrase and question each:
 
 ## Adversarial and privacy test fixtures
 
-Plan five poisoned documents, each containing one isolated test case: a hidden
+The corpus contains five poisoned documents, each containing one isolated test case: a hidden
 "ignore instructions" comment, fake admin-mode instructions, a false 90-day
 refund claim, a metadata-service URL, and a base64-encoded instruction. Plan
 five separate PII/secret canary documents containing only synthetic values: a
@@ -138,7 +138,8 @@ test card number, fictional email, reserved/example phone, test IBAN, and
 obviously fake API-key-shaped string. A glossary document must be indexed for
 retrieval tests but marked so it is never cited as an authoritative answer.
 
-All of these fixtures are planned; do not ingest or use them as live policy.
-M1 guardrails, PII masking, flagged-chunk filtering, and M3 access controls
-must be implemented and tested before exposing the synthetic corpus through
-the API.
+These fixtures are synthetic and must not be used as live policy. M1
+guardrails, PII masking, flagged-chunk filtering, and M3 access controls are
+implemented; the M3 access evaluation reports 51 cases, 0 leaks, and 1.000
+expected-document recall. Demo-user seeding and a live authenticated login
+check remain pending a local `SEED_PASSWORD`.

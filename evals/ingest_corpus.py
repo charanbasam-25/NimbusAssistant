@@ -7,9 +7,12 @@ import hashlib
 import json
 import re
 import subprocess
+from dataclasses import dataclass
 from pathlib import Path
+from typing import Any
 
 import psycopg
+import yaml
 from nimbus_api.config import database_url
 from nimbus_api.guardrails import GUARDRAILS_VERSION, should_flag_chunk
 from nimbus_api.pii import PII_VERSION, mask_pii
@@ -17,6 +20,8 @@ from psycopg.types.json import Jsonb
 
 ROOT = Path(__file__).resolve().parents[1]
 MANIFEST_PATH = ROOT / "docs" / "corpus-manifest.json"
+SYNTHETIC_COMMIT = "nimbus-cloud-v1"
+SYNTHETIC_ENDING = "Synthetic document for Nimbus capstone testing. Not real policy."
 TOKEN_PATTERN = re.compile(r"\w+|[^\w\s]", re.UNICODE)
 MAX_CHUNK_LEXICAL_TOKENS = 600
 CHUNK_OVERLAP_TOKENS = 80
@@ -27,6 +32,262 @@ INCLUDE_PATTERN = re.compile(r"(?m)^[ \t]*\{\*[ \t]*(?P<body>[^\r\n]*?)[ \t]*\*\
 INCLUDE_OPTION_PATTERN = re.compile(
     r'\s*(?:hl\[[0-9,: \-]+\]|ln\[[0-9,: \-]+\]|title\["[^"\r\n]*"\])'
 )
+
+
+@dataclass(frozen=True)
+class SyntheticDocument:
+    entry: dict[str, Any]
+    body: str
+    content_hash: str
+
+
+def split_front_matter(markdown: str, source: str = "<document>") -> tuple[dict, str]:
+    """Parse a YAML front-matter mapping and return only the answer-bearing body."""
+    lines = markdown.splitlines()
+    if not lines or lines[0].strip() != "---":
+        raise ValueError(f"{source}: expected YAML front matter at the start of the file")
+    try:
+        closing = next(index for index in range(1, len(lines)) if lines[index].strip() == "---")
+    except StopIteration as error:
+        raise ValueError(f"{source}: missing closing front-matter delimiter") from error
+    metadata = yaml.safe_load("\n".join(lines[1:closing]))
+    if not isinstance(metadata, dict):
+        raise TypeError(f"{source}: front matter must be a YAML mapping")
+    return metadata, "\n".join(lines[closing + 1 :]).strip()
+
+
+def validate_synthetic_manifest(manifest_path: Path) -> tuple[dict, list[SyntheticDocument]]:
+    """Validate the full manifest and source files before making database changes."""
+    manifest = json.loads(manifest_path.read_text(encoding="utf-8"))
+    if not isinstance(manifest, dict):
+        raise TypeError(f"{manifest_path}: manifest must be a JSON object")
+    if manifest.get("schema_version") != 1 or not isinstance(manifest.get("corpus_id"), str):
+        raise ValueError(f"{manifest_path}: unsupported or missing schema_version/corpus_id")
+    entries = manifest.get("documents")
+    if not isinstance(entries, list) or not entries:
+        raise ValueError(f"{manifest_path}: documents must be a non-empty array")
+
+    required = {
+        "id",
+        "source_path",
+        "title",
+        "audience",
+        "region",
+        "kind",
+        "pair",
+        "question",
+        "expected_canary_facts",
+    }
+    frontmatter_fields = {
+        "id",
+        "title",
+        "audience",
+        "region",
+        "kind",
+        "pair",
+        "canary_facts",
+    }
+    ids: set[str] = set()
+    source_paths: set[str] = set()
+    validated: list[SyntheticDocument] = []
+    pairs: dict[str, list[dict[str, Any]]] = {}
+    root = manifest_path.resolve().parent
+
+    for index, entry in enumerate(entries):
+        prefix = f"{manifest_path}: documents[{index}]"
+        if not isinstance(entry, dict):
+            raise TypeError(f"{prefix} must be an object")
+        missing = required - entry.keys()
+        if missing:
+            raise ValueError(f"{prefix} is missing fields: {sorted(missing)}")
+        for key in ("id", "source_path", "title"):
+            if not isinstance(entry[key], str) or not entry[key].strip():
+                raise ValueError(f"{prefix}.{key} must be a non-empty string")
+        if entry["id"] in ids:
+            raise ValueError(f"{prefix}: duplicate id {entry['id']!r}")
+        if entry["source_path"] in source_paths:
+            raise ValueError(f"{prefix}: duplicate source_path {entry['source_path']!r}")
+        ids.add(entry["id"])
+        source_paths.add(entry["source_path"])
+        if entry["audience"] not in {"public", "internal"}:
+            raise ValueError(f"{prefix}: invalid audience {entry['audience']!r}")
+        if entry["region"] not in {"global", "R1", "R2"}:
+            raise ValueError(f"{prefix}: invalid region {entry['region']!r}")
+        if entry["kind"] not in {"policy", "runbook", "poisoned", "pii", "glossary"}:
+            raise ValueError(f"{prefix}: invalid kind {entry['kind']!r}")
+        if entry["pair"] is not None and (
+            not isinstance(entry["pair"], str) or not entry["pair"].strip()
+        ):
+            raise ValueError(f"{prefix}.pair must be null or a non-empty string")
+        question = entry["question"]
+        if entry["kind"] in {"policy", "runbook"}:
+            if not isinstance(question, str) or not question.strip():
+                raise ValueError(f"{prefix}: policy/runbook entries need a question")
+        elif question is not None:
+            raise ValueError(f"{prefix}: only policy/runbook entries may have questions")
+        if not isinstance(entry["expected_canary_facts"], dict):
+            raise TypeError(f"{prefix}.expected_canary_facts must be an object")
+
+        relative = Path(entry["source_path"])
+        if relative.is_absolute() or ".." in relative.parts:
+            raise ValueError(f"{prefix}: source_path must stay inside the synthetic corpus")
+        path = (root / relative).resolve()
+        if not path.is_relative_to(root):
+            raise ValueError(f"{prefix}: source_path escapes the synthetic corpus")
+        if not path.is_file():
+            raise ValueError(f"{prefix}: source file does not exist: {entry['source_path']}")
+        raw = path.read_text(encoding="utf-8")
+        front_matter, body = split_front_matter(raw, str(path))
+        if not frontmatter_fields.issubset(front_matter):
+            missing_frontmatter = frontmatter_fields - front_matter.keys()
+            raise ValueError(f"{path}: missing front-matter fields {sorted(missing_frontmatter)}")
+        expected_front_matter = {
+            "id": entry["id"],
+            "title": entry["title"],
+            "audience": entry["audience"],
+            "region": entry["region"],
+            "kind": entry["kind"],
+            "pair": entry["pair"],
+            "canary_facts": entry["expected_canary_facts"],
+        }
+        for key, expected in expected_front_matter.items():
+            if front_matter.get(key) != expected:
+                raise ValueError(
+                    f"{path}: front-matter {key}={front_matter.get(key)!r} "
+                    f"does not match manifest value {expected!r}"
+                )
+        if not body.endswith(SYNTHETIC_ENDING):
+            raise ValueError(f"{path}: body must end with the synthetic-document disclaimer")
+        word_count = len(re.findall(r"\b[\w'-]+\b", body))
+        if not 120 <= word_count <= 300:
+            raise ValueError(f"{path}: body must contain 120-300 words (found {word_count})")
+        validated.append(
+            SyntheticDocument(
+                entry=entry,
+                body=body,
+                content_hash=hashlib.sha256(raw.encode("utf-8")).hexdigest(),
+            )
+        )
+        if entry["pair"] is not None:
+            pairs.setdefault(entry["pair"], []).append(entry)
+
+    for pair_id, pair_entries in pairs.items():
+        if (
+            len(pair_entries) != 2
+            or {entry["region"] for entry in pair_entries} != {"R1", "R2"}
+            or len({entry["question"] for entry in pair_entries}) != 1
+        ):
+            raise ValueError(
+                f"{manifest_path}: pair {pair_id!r} must have R1/R2 entries sharing a question"
+            )
+    return manifest, validated
+
+
+def ingest_synthetic(manifest_path: Path) -> dict[str, Any]:
+    manifest, documents = validate_synthetic_manifest(manifest_path)
+    loaded_chunks = 0
+    flagged_chunks = 0
+    pii_masked: dict[str, int] = {}
+
+    with psycopg.connect(database_url()) as connection, connection.transaction():
+        for document in documents:
+            entry = document.entry
+            title_result = mask_pii(entry["title"])
+            body_result = mask_pii(document.body)
+            for result in (title_result, body_result):
+                for category, count in result.counts.items():
+                    pii_masked[category] = pii_masked.get(category, 0) + count
+            title = title_result.text
+            chunks = make_chunks(body_result.text)
+            connection.execute(
+                """
+                DELETE FROM documents
+                WHERE source_commit = %s AND source_path = %s AND content_hash <> %s
+                """,
+                (SYNTHETIC_COMMIT, entry["source_path"], document.content_hash),
+            )
+            document_id = connection.execute(
+                """
+                INSERT INTO documents (
+                    source_url, source_commit, source_path, title, audience, region,
+                    content_hash, metadata
+                )
+                VALUES (%s, %s, %s, %s, %s, %s, %s, %s)
+                ON CONFLICT (source_commit, source_path, content_hash)
+                DO UPDATE SET title = EXCLUDED.title, metadata = EXCLUDED.metadata
+                RETURNING id
+                """,
+                (
+                    f"synthetic://nimbus-cloud/{entry['id']}",
+                    SYNTHETIC_COMMIT,
+                    entry["source_path"],
+                    title,
+                    entry["audience"],
+                    entry["region"],
+                    document.content_hash,
+                    Jsonb(
+                        {
+                            "source": "synthetic",
+                            "kind": entry["kind"],
+                            "pair": entry["pair"],
+                            "id": entry["id"],
+                        }
+                    ),
+                ),
+            ).fetchone()[0]
+            connection.execute("DELETE FROM chunks WHERE document_id = %s", (document_id,))
+            for ordinal, chunk in enumerate(chunks):
+                content = str(chunk["content"])
+                flagged = should_flag_chunk(content)
+                flagged_chunks += int(flagged)
+                embedding_input = f"{title}: {content}"
+                content_hash = "sha256:" + hashlib.sha256(content.encode("utf-8")).hexdigest()
+                processing = Jsonb(
+                    {
+                        "parser_version": PARSER_VERSION,
+                        "chunker_version": CHUNKER_VERSION,
+                        "pii_masker": PII_VERSION,
+                        "injection_detector": GUARDRAILS_VERSION,
+                    }
+                )
+                connection.execute(
+                    """
+                    INSERT INTO chunks (
+                        document_id, ordinal, heading, content, token_count,
+                        embedding_input, content_hash, processing, flagged
+                    )
+                    VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s)
+                    ON CONFLICT (document_id, ordinal)
+                    DO UPDATE SET heading = EXCLUDED.heading,
+                                  content = EXCLUDED.content,
+                                  token_count = EXCLUDED.token_count,
+                                  embedding_input = EXCLUDED.embedding_input,
+                                  content_hash = EXCLUDED.content_hash,
+                                  processing = EXCLUDED.processing,
+                                  flagged = EXCLUDED.flagged
+                    """,
+                    (
+                        document_id,
+                        ordinal,
+                        None,
+                        content,
+                        chunk["token_count"],
+                        embedding_input,
+                        content_hash,
+                        processing,
+                        flagged,
+                    ),
+                )
+            loaded_chunks += len(chunks)
+
+    return {
+        "corpus_id": manifest["corpus_id"],
+        "source_commit": SYNTHETIC_COMMIT,
+        "documents_loaded": len(documents),
+        "chunks_loaded": loaded_chunks,
+        "flagged_chunks": flagged_chunks,
+        "pii_masked": pii_masked,
+    }
 
 
 def checkout_pinned_source(repository: str, commit: str, destination: Path) -> Path:
@@ -509,35 +770,47 @@ def main() -> None:
     parser.add_argument(
         "--report",
         type=Path,
-        default=ROOT / "data" / "processed" / "corpus-ingestion-report.json",
-        help="write the reproducibility report here",
+        help="write the ingestion report here",
+    )
+    parser.add_argument(
+        "--synthetic",
+        type=Path,
+        help="ingest a validated Nimbus Cloud synthetic manifest instead of FastAPI docs",
     )
     args = parser.parse_args()
-    manifest = json.loads(MANIFEST_PATH.read_text(encoding="utf-8"))
-    if args.source_dir:
-        source_root = args.source_dir.resolve()
-        actual_commit = subprocess.run(
-            ["git", "-C", str(source_root), "rev-parse", "HEAD"],
-            check=True,
-            capture_output=True,
-            text=True,
-        ).stdout.strip()
-        if actual_commit != manifest["source_commit"]:
-            raise RuntimeError(
-                f"--source-dir must be at pinned commit {manifest['source_commit']}; "
-                f"found {actual_commit}"
-            )
+    if args.synthetic and args.source_dir:
+        parser.error("--synthetic cannot be combined with --source-dir")
+    if args.synthetic:
+        report = ingest_synthetic(args.synthetic.resolve())
+        default_report = ROOT / "data" / "processed" / "synthetic-ingestion-report.json"
     else:
-        source_root = checkout_pinned_source(
-            manifest["source_repository"], manifest["source_commit"], args.checkout_dir
-        )
-    report = ingest(source_root.resolve(), manifest)
-    args.report.parent.mkdir(parents=True, exist_ok=True)
-    args.report.write_text(json.dumps(report, indent=2) + "\n", encoding="utf-8")
+        manifest = json.loads(MANIFEST_PATH.read_text(encoding="utf-8"))
+        if args.source_dir:
+            source_root = args.source_dir.resolve()
+            actual_commit = subprocess.run(
+                ["git", "-C", str(source_root), "rev-parse", "HEAD"],
+                check=True,
+                capture_output=True,
+                text=True,
+            ).stdout.strip()
+            if actual_commit != manifest["source_commit"]:
+                raise RuntimeError(
+                    f"--source-dir must be at pinned commit {manifest['source_commit']}; "
+                    f"found {actual_commit}"
+                )
+        else:
+            source_root = checkout_pinned_source(
+                manifest["source_repository"], manifest["source_commit"], args.checkout_dir
+            )
+        report = ingest(source_root.resolve(), manifest)
+        default_report = ROOT / "data" / "processed" / "corpus-ingestion-report.json"
+    report_path = (args.report or default_report).resolve()
+    report_path.parent.mkdir(parents=True, exist_ok=True)
+    report_path.write_text(json.dumps(report, indent=2) + "\n", encoding="utf-8")
     print(
-        f"Loaded {report['documents_loaded']} documents and {report['chunks_loaded']} chunks "
-        f"from commit {report['source_commit']}; flagged {report['flagged_chunks']} chunks; "
-        f"PII masks: {json.dumps(report['pii_masked'], sort_keys=True)}. Report: {args.report}"
+        f"Loaded {report['documents_loaded']} documents and {report['chunks_loaded']} chunks; "
+        f"flagged {report['flagged_chunks']}; PII masks: "
+        f"{json.dumps(report['pii_masked'], sort_keys=True)}. Report: {report_path}"
     )
 
 

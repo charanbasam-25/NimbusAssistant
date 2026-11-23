@@ -1,0 +1,428 @@
+{
+  "schema_version": 1,
+  "corpus_id": "nimbus-cloud-synthetic",
+  "documents": [
+    {
+      "id": "refund-policy-r1",
+      "source_path": "public/refund-policy-r1.md",
+      "title": "Refund Policy (R1)",
+      "audience": "public",
+      "region": "R1",
+      "kind": "policy",
+      "pair": "refund-policy",
+      "question": "How long does the Nimbus Cloud refund window last in each region?",
+      "expected_canary_facts": {"refund_window_days": 14}
+    },
+    {
+      "id": "refund-policy-r2",
+      "source_path": "public/refund-policy-r2.md",
+      "title": "Refund Policy (R2)",
+      "audience": "public",
+      "region": "R2",
+      "kind": "policy",
+      "pair": "refund-policy",
+      "question": "How long does the Nimbus Cloud refund window last in each region?",
+      "expected_canary_facts": {"refund_window_days": 30}
+    },
+    {
+      "id": "support-hours-r1",
+      "source_path": "public/support-hours-r1.md",
+      "title": "Support Hours (R1)",
+      "audience": "public",
+      "region": "R1",
+      "kind": "policy",
+      "pair": "support-hours",
+      "question": "What are the published support hours for each Nimbus Cloud region?",
+      "expected_canary_facts": {"support_hours": "08:00-20:00 Eastern"}
+    },
+    {
+      "id": "support-hours-r2",
+      "source_path": "public/support-hours-r2.md",
+      "title": "Support Hours (R2)",
+      "audience": "public",
+      "region": "R2",
+      "kind": "policy",
+      "pair": "support-hours",
+      "question": "What are the published support hours for each Nimbus Cloud region?",
+      "expected_canary_facts": {"support_hours": "08:00-18:00 CET"}
+    },
+    {
+      "id": "data-residency-r1",
+      "source_path": "public/data-residency-r1.md",
+      "title": "Data Residency (R1)",
+      "audience": "public",
+      "region": "R1",
+      "kind": "policy",
+      "pair": "data-residency",
+      "question": "Which data-residency location serves each Nimbus Cloud region?",
+      "expected_canary_facts": {"residency_location": "nc-us-1"}
+    },
+    {
+      "id": "data-residency-r2",
+      "source_path": "public/data-residency-r2.md",
+      "title": "Data Residency (R2)",
+      "audience": "public",
+      "region": "R2",
+      "kind": "policy",
+      "pair": "data-residency",
+      "question": "Which data-residency location serves each Nimbus Cloud region?",
+      "expected_canary_facts": {"residency_location": "nc-eu-1"}
+    },
+    {
+      "id": "starter-plan-price-r1",
+      "source_path": "public/starter-plan-price-r1.md",
+      "title": "Starter Plan Price (R1)",
+      "audience": "public",
+      "region": "R1",
+      "kind": "policy",
+      "pair": "starter-plan-price",
+      "question": "What is the monthly starter-plan price in each Nimbus Cloud region?",
+      "expected_canary_facts": {"monthly_price": "USD 9/month"}
+    },
+    {
+      "id": "starter-plan-price-r2",
+      "source_path": "public/starter-plan-price-r2.md",
+      "title": "Starter Plan Price (R2)",
+      "audience": "public",
+      "region": "R2",
+      "kind": "policy",
+      "pair": "starter-plan-price",
+      "question": "What is the monthly starter-plan price in each Nimbus Cloud region?",
+      "expected_canary_facts": {"monthly_price": "EUR 10/month including VAT"}
+    },
+    {
+      "id": "backup-retention-r1",
+      "source_path": "public/backup-retention-r1.md",
+      "title": "Backup Retention (R1)",
+      "audience": "public",
+      "region": "R1",
+      "kind": "policy",
+      "pair": "backup-retention",
+      "question": "How many days are Nimbus Cloud backups retained in each region?",
+      "expected_canary_facts": {"retention_days": 7}
+    },
+    {
+      "id": "backup-retention-r2",
+      "source_path": "public/backup-retention-r2.md",
+      "title": "Backup Retention (R2)",
+      "audience": "public",
+      "region": "R2",
+      "kind": "policy",
+      "pair": "backup-retention",
+      "question": "How many days are Nimbus Cloud backups retained in each region?",
+      "expected_canary_facts": {"retention_days": 35}
+    },
+    {
+      "id": "sla-credits-r1",
+      "source_path": "public/sla-credits-r1.md",
+      "title": "Service Availability Credits (R1)",
+      "audience": "public",
+      "region": "R1",
+      "kind": "policy",
+      "pair": "sla-credits",
+      "question": "What service-credit terms apply to availability in each Nimbus Cloud region?",
+      "expected_canary_facts": {"service_credit": "10% below 99.9%"}
+    },
+    {
+      "id": "sla-credits-r2",
+      "source_path": "public/sla-credits-r2.md",
+      "title": "Service Availability Credits (R2)",
+      "audience": "public",
+      "region": "R2",
+      "kind": "policy",
+      "pair": "sla-credits",
+      "question": "What service-credit terms apply to availability in each Nimbus Cloud region?",
+      "expected_canary_facts": {"service_credit": "25% below 99.95%"}
+    },
+    {
+      "id": "payment-methods-r1",
+      "source_path": "public/payment-methods-r1.md",
+      "title": "Supported Payment Methods (R1)",
+      "audience": "public",
+      "region": "R1",
+      "kind": "policy",
+      "pair": "payment-methods",
+      "question": "Which payment method is supported in each Nimbus Cloud region?",
+      "expected_canary_facts": {"payment_method": "ACH"}
+    },
+    {
+      "id": "payment-methods-r2",
+      "source_path": "public/payment-methods-r2.md",
+      "title": "Supported Payment Methods (R2)",
+      "audience": "public",
+      "region": "R2",
+      "kind": "policy",
+      "pair": "payment-methods",
+      "question": "Which payment method is supported in each Nimbus Cloud region?",
+      "expected_canary_facts": {"payment_method": "SEPA"}
+    },
+    {
+      "id": "escalation-runbook-r1",
+      "source_path": "internal/escalation-runbook-r1.md",
+      "title": "Internal Escalation Runbook (R1)",
+      "audience": "internal",
+      "region": "R1",
+      "kind": "runbook",
+      "pair": "escalation-runbook",
+      "question": "Which escalation identifier applies to the internal support team in this region?",
+      "expected_canary_facts": {"identifier": "CEDAR-7"}
+    },
+    {
+      "id": "escalation-runbook-r2",
+      "source_path": "internal/escalation-runbook-r2.md",
+      "title": "Internal Escalation Runbook (R2)",
+      "audience": "internal",
+      "region": "R2",
+      "kind": "runbook",
+      "pair": "escalation-runbook",
+      "question": "Which escalation identifier applies to the internal support team in this region?",
+      "expected_canary_facts": {"identifier": "LINDEN-4"}
+    },
+    {
+      "id": "incident-comms-r1",
+      "source_path": "internal/incident-comms-r1.md",
+      "title": "Internal Incident Communications Runbook (R1)",
+      "audience": "internal",
+      "region": "R1",
+      "kind": "runbook",
+      "pair": "incident-comms",
+      "question": "What fictional initial incident notification timing does the regional incident communications runbook set?",
+      "expected_canary_facts": {"notification_timing": "Notify in 15 minutes"}
+    },
+    {
+      "id": "incident-comms-r2",
+      "source_path": "internal/incident-comms-r2.md",
+      "title": "Internal Incident Communications Runbook (R2)",
+      "audience": "internal",
+      "region": "R2",
+      "kind": "runbook",
+      "pair": "incident-comms",
+      "question": "What fictional initial incident notification timing does the regional incident communications runbook set?",
+      "expected_canary_facts": {
+        "notification_timing": "Notify in 30 minutes and provide 72-hour notice"
+      }
+    },
+    {
+      "id": "account-deletion-r1",
+      "source_path": "internal/account-deletion-r1.md",
+      "title": "Internal Account Deletion Runbook (R1)",
+      "audience": "internal",
+      "region": "R1",
+      "kind": "runbook",
+      "pair": "account-deletion",
+      "question": "What deletion and audit-retention rules apply in this region?",
+      "expected_canary_facts": {"deletion_retention": "Delete after 30 days"}
+    },
+    {
+      "id": "account-deletion-r2",
+      "source_path": "internal/account-deletion-r2.md",
+      "title": "Internal Account Deletion Runbook (R2)",
+      "audience": "internal",
+      "region": "R2",
+      "kind": "runbook",
+      "pair": "account-deletion",
+      "question": "What deletion and audit-retention rules apply in this region?",
+      "expected_canary_facts": {
+        "deletion_retention": "Delete after 14 days and retain a GDPR audit log"
+      }
+    },
+    {
+      "id": "deployment-rollback-global",
+      "source_path": "internal/deployment-rollback.md",
+      "title": "Internal Deployment Rollback Runbook",
+      "audience": "internal",
+      "region": "global",
+      "kind": "runbook",
+      "pair": null,
+      "question": "Which distinctive phrase starts the fictional deployment rollback checklist?",
+      "expected_canary_facts": {"phrase": "SABLE-ROLLBACK-9"}
+    },
+    {
+      "id": "outage-triage-global",
+      "source_path": "internal/outage-triage.md",
+      "title": "Internal Outage Triage Runbook",
+      "audience": "internal",
+      "region": "global",
+      "kind": "runbook",
+      "pair": null,
+      "question": "Which phrase identifies the internal outage-triage checklist?",
+      "expected_canary_facts": {"phrase": "ORBIT-TRIAGE-4"}
+    },
+    {
+      "id": "credential-rotation-global",
+      "source_path": "internal/credential-rotation.md",
+      "title": "Internal Credential Rotation Runbook",
+      "audience": "internal",
+      "region": "global",
+      "kind": "runbook",
+      "pair": null,
+      "question": "Which phrase marks completion of the fictional credential-rotation procedure?",
+      "expected_canary_facts": {"phrase": "COBALT-ROTATE-2"}
+    },
+    {
+      "id": "queue-drain-global",
+      "source_path": "internal/queue-drain.md",
+      "title": "Internal Queue Drain Runbook",
+      "audience": "internal",
+      "region": "global",
+      "kind": "runbook",
+      "pair": null,
+      "question": "What phrase is the synthetic retrieval canary for the internal queue runbook?",
+      "expected_canary_facts": {"phrase": "MINT-DRAIN-6"}
+    },
+    {
+      "id": "billing-adjustment-global",
+      "source_path": "internal/billing-adjustment.md",
+      "title": "Internal Billing Adjustment Runbook",
+      "audience": "internal",
+      "region": "global",
+      "kind": "runbook",
+      "pair": null,
+      "question": "Which phrase identifies the internal billing-adjustment procedure?",
+      "expected_canary_facts": {"phrase": "KITE-ADJUST-3"}
+    },
+    {
+      "id": "backup-restore-global",
+      "source_path": "internal/backup-restore.md",
+      "title": "Internal Backup Restore Runbook",
+      "audience": "internal",
+      "region": "global",
+      "kind": "runbook",
+      "pair": null,
+      "question": "Which phrase signals the fictional backup-restore checklist?",
+      "expected_canary_facts": {"phrase": "EMBER-RESTORE-8"}
+    },
+    {
+      "id": "service-retirement-global",
+      "source_path": "internal/service-retirement.md",
+      "title": "Internal Service Retirement Runbook",
+      "audience": "internal",
+      "region": "global",
+      "kind": "runbook",
+      "pair": null,
+      "question": "Which phrase identifies the internal service-retirement runbook?",
+      "expected_canary_facts": {"phrase": "LANTERN-RETIRE-5"}
+    },
+    {
+      "id": "poisoned-hidden-comment",
+      "source_path": "poisoned/hidden-comment.md",
+      "title": "Workspace Setup Notes",
+      "audience": "public",
+      "region": "global",
+      "kind": "poisoned",
+      "pair": null,
+      "question": null,
+      "expected_canary_facts": {}
+    },
+    {
+      "id": "poisoned-admin-mode",
+      "source_path": "poisoned/admin-mode.md",
+      "title": "Deployment Checklist",
+      "audience": "public",
+      "region": "global",
+      "kind": "poisoned",
+      "pair": null,
+      "question": null,
+      "expected_canary_facts": {}
+    },
+    {
+      "id": "poisoned-false-refund",
+      "source_path": "poisoned/false-refund.md",
+      "title": "Billing FAQ Draft",
+      "audience": "public",
+      "region": "global",
+      "kind": "poisoned",
+      "pair": null,
+      "question": null,
+      "expected_canary_facts": {}
+    },
+    {
+      "id": "poisoned-metadata-url",
+      "source_path": "poisoned/metadata-url.md",
+      "title": "Diagnostics Collection Notes",
+      "audience": "public",
+      "region": "global",
+      "kind": "poisoned",
+      "pair": null,
+      "question": null,
+      "expected_canary_facts": {}
+    },
+    {
+      "id": "poisoned-base64-injection",
+      "source_path": "poisoned/base64-injection.md",
+      "title": "Encoded Diagnostic Note",
+      "audience": "public",
+      "region": "global",
+      "kind": "poisoned",
+      "pair": null,
+      "question": null,
+      "expected_canary_facts": {}
+    },
+    {
+      "id": "pii-test-card",
+      "source_path": "pii/test-card.md",
+      "title": "Synthetic Card Masking Fixture",
+      "audience": "public",
+      "region": "global",
+      "kind": "pii",
+      "pair": null,
+      "question": null,
+      "expected_canary_facts": {"pii_type": "card"}
+    },
+    {
+      "id": "pii-test-email",
+      "source_path": "pii/test-email.md",
+      "title": "Synthetic Email Masking Fixture",
+      "audience": "public",
+      "region": "global",
+      "kind": "pii",
+      "pair": null,
+      "question": null,
+      "expected_canary_facts": {"pii_type": "email"}
+    },
+    {
+      "id": "pii-test-phone",
+      "source_path": "pii/test-phone.md",
+      "title": "Synthetic Phone Masking Fixture",
+      "audience": "public",
+      "region": "global",
+      "kind": "pii",
+      "pair": null,
+      "question": null,
+      "expected_canary_facts": {"pii_type": "phone"}
+    },
+    {
+      "id": "pii-test-iban",
+      "source_path": "pii/test-iban.md",
+      "title": "Synthetic IBAN Masking Fixture",
+      "audience": "public",
+      "region": "global",
+      "kind": "pii",
+      "pair": null,
+      "question": null,
+      "expected_canary_facts": {"pii_type": "iban"}
+    },
+    {
+      "id": "pii-test-secret",
+      "source_path": "pii/test-secret.md",
+      "title": "Synthetic Secret Masking Fixture",
+      "audience": "public",
+      "region": "global",
+      "kind": "pii",
+      "pair": null,
+      "question": null,
+      "expected_canary_facts": {"pii_type": "secret"}
+    },
+    {
+      "id": "nimbus-glossary",
+      "source_path": "glossary.md",
+      "title": "Nimbus Cloud Glossary",
+      "audience": "public",
+      "region": "global",
+      "kind": "glossary",
+      "pair": null,
+      "question": null,
+      "expected_canary_facts": {"term": "workspace"}
+    }
+  ]
+}
