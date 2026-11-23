@@ -256,17 +256,17 @@
       ],
       "id": "synthetic-natural-jwt-002",
       "metrics": {
-        "mrr": 0.0,
-        "ndcg": 0.0,
-        "recall": 0.0
+        "mrr": 0.2,
+        "ndcg": 0.38685280723454163,
+        "recall": 1.0
       },
       "provenance": "synthetic",
       "retrieved_source_paths": [
         "tutorial/index.md",
-        "tutorial/security/first-steps.md",
         "advanced/security/oauth2-scopes.md",
+        "tutorial/security/first-steps.md",
         "tutorial/security/simple-oauth2.md",
-        "advanced/path-operation-advanced-configuration.md"
+        "tutorial/security/oauth2-jwt.md"
       ],
       "slice": "general"
     },
@@ -317,22 +317,22 @@
   ],
   "summary": {
     "overall": {
-      "mrr": 0.4166666666666667,
-      "ndcg_at_k": 0.46204510387155956,
+      "mrr": 0.43,
+      "ndcg_at_k": 0.48783529102052897,
       "questions": 15,
-      "recall_at_k": 0.6
+      "recall_at_k": 0.6666666666666666
     },
     "provenance:synthetic": {
-      "mrr": 0.4166666666666667,
-      "ndcg_at_k": 0.46204510387155956,
+      "mrr": 0.43,
+      "ndcg_at_k": 0.48783529102052897,
       "questions": 15,
-      "recall_at_k": 0.6
+      "recall_at_k": 0.6666666666666666
     },
     "slice:general": {
-      "mrr": 0.42857142857142855,
-      "ndcg_at_k": 0.4642857142857143,
+      "mrr": 0.44285714285714284,
+      "ndcg_at_k": 0.4919180576596101,
       "questions": 14,
-      "recall_at_k": 0.5714285714285714
+      "recall_at_k": 0.6428571428571429
     },
     "slice:short_query": {
       "mrr": 0.25,

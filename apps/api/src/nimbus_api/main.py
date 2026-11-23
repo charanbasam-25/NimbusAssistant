@@ -3,6 +3,7 @@ from fastapi import FastAPI, HTTPException
 from pydantic import BaseModel, Field
 
 from nimbus_api.config import database_url
+from nimbus_api.guardrails import check_input
 from nimbus_api.retrieval import search_chunks
 
 app = FastAPI(
@@ -25,6 +26,9 @@ class RetrievalRequest(BaseModel):
 @app.post("/v1/retrieval/search", tags=["retrieval"])
 def retrieve(request: RetrievalRequest) -> dict[str, object]:
     """Search indexed documentation and return inspectable source passages."""
+    guardrail = check_input(request.query)
+    if not guardrail.allowed:
+        raise HTTPException(status_code=422, detail=guardrail.reason)
     try:
         # Open a short-lived connection for this request, run search, then close it.
         with psycopg.connect(database_url()) as connection:

@@ -68,6 +68,17 @@ def test_oversized_fenced_code_repairs_each_chunk_boundary(opening, fence) -> No
     assert "Explanation follows." in chunks[-1]
 
 
+def test_reopened_long_include_repeats_its_source_label() -> None:
+    code = "\n".join(f"value_{index} = {index}" for index in range(120))
+    text = f"[Example source: docs_src/example.py]\n```python\n{code}\n```"
+
+    chunks = split_long_text(text, max_tokens=70)
+
+    assert len(chunks) > 2
+    assert all("[Example source: docs_src/example.py]" in chunk for chunk in chunks)
+    assert all(chunk.count("```") == 2 for chunk in chunks)
+
+
 def test_normal_paragraph_grouping_stays_unchanged() -> None:
     markdown = "# Intro\n\nFirst short paragraph.\n\nSecond short paragraph."
 

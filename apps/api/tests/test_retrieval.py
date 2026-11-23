@@ -75,6 +75,7 @@ def test_search_chunks_returns_passage_and_source_metadata() -> None:
         }
     ]
     assert connection.parameters == ("request body", ["public"], ["global"], 5)
+    assert "AND NOT c.flagged" in connection.query
 
 
 @pytest.mark.parametrize(

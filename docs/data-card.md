@@ -50,10 +50,18 @@ provenance/licensing, and report their scores separately from synthetic data.
 ## Personal data handling
 
 The current indexed source is public documentation; this project does not
-collect private user-account data for the corpus. **Planned (M1):** mask
-personal data and credentials before chunking or logging, test for false
-positives, and scan outputs. Deliberate PII/secret examples, if added for tests,
-will be synthetic canaries and must not be real credentials or people.
+collect private user-account data for the corpus. During ingestion, the
+expanded document text is masked before chunking. The masker detects API-key
+and long-hex secret patterns, non-example email addresses, checksum-valid
+IBANs, Luhn-valid card numbers, and phone-number patterns. It preserves
+`example.com`, `.org`, and `.net` addresses and rejects invalid IBAN/card
+checksums. Titles are taken from the masked text. Mask counts are reported by
+category; raw sensitive values are not included in that report. This is a
+pattern-based defense, not a guarantee that all personal data is detected.
+Suspicious prompt-injection or unsafe-URL passages are marked on chunks and
+excluded from retrieval; the API rejects suspicious user inputs before search.
+The current pinned FastAPI corpus must be re-ingested after this feature so the
+masking and flagged state is reflected in stored rows.
 
 ## Known limitations
 
@@ -64,7 +72,9 @@ will be synthetic canaries and must not be real credentials or people.
 - Authentication and regional access enforcement are **Planned (M3)**; no
   regional synthetic content should be loaded or exposed before access controls
   and leak evaluations are verified.
-- PII masking, guardrails, and flagged-chunk filtering are **Planned (M1)**.
+- The current PII rules are pattern-based and may miss unusual formats or
+  produce false positives; corpus-specific flagged/masking counts are checked
+  during M1 re-ingestion.
 - The source snapshot is pinned, so it does not automatically include newer
   FastAPI documentation.
 

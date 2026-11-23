@@ -28,9 +28,9 @@ source code or architecture decisions.
 
 Nimbus is a FastAPI support-assistant capstone. Its current corpus is a pinned
 snapshot of the official FastAPI documentation: 158 Markdown documents and,
-after milestone 13 re-ingestion, 2,265 chunks. Every stored chunk now has
-balanced triple-backtick fences and remains within the 600-token lexical cap.
-The project has a PostgreSQL
+after milestone 14 re-ingestion, 2,270 chunks. Every stored chunk now has
+balanced triple-backtick fences, remains within the 600-token lexical cap, and
+is screened by the current PII/flagging rules. The project has a PostgreSQL
 keyword-search baseline and evaluation scaffold, but it is **not yet a complete
 RAG assistant**: embeddings and answer generation have not been implemented.
 
@@ -415,8 +415,69 @@ now percent-encodes user, password, and database separately; unit tests
 confirm psycopg parses the original values correctly, and Alembic plus the
 database integration check passed locally.
 
-**Next:** Wait for the owner to authorize commit/push, then verify the GitHub
-Actions result. Do not report hosted CI as green until it actually runs.
+**Hosted CI:** GitHub Actions run `45211237914` passed on commit `5cb2422`.
+The M1 changes below are uncommitted and have not yet run in hosted CI.
+
+**Next:** Complete local M1 verification, update the data card and report the
+proposed commit message without committing until asked.
+
+### 14. Mask PII and add guardrails — 2026-11-23
+
+**Goal:** Reduce sensitive-data exposure in indexed passages, reject common
+prompt-injection/unsafe-URL queries, and keep suspicious corpus chunks out of
+retrieval.
+
+**What changed:** Added `pii.py` with ordered secret/email/IBAN/card/phone
+masking and category counts. Whole expanded documents are masked before
+chunking; titles are derived from sanitized text. The 13 hex-secret pattern
+occurrences in the FastAPI security examples are masked; example-domain
+addresses are preserved. Corpus inspection found two Luhn-valid numeric
+identifiers in an ISBN key and a URL path; card matching now excludes these
+contexts. No other PII categories matched the corpus.
+
+Added `guardrails.py` with ordered input rejection (empty, length, injection,
+unsafe URL, abuse), base64-decoded injection detection, link-local and metadata
+URL blocking, and chunk flagging. The search API checks queries before database
+access. Migration `0004_chunk_flagged` adds the boolean flag; PostgreSQL search
+filters flagged chunks. Processing metadata records `pii-v1` and
+`guardrails-v1`.
+
+Fence repair now repeats an included-example's `[Example source: ...]` label
+before reopening a fence in a continuation chunk. Its version is
+`heading-paragraph-lexical-600-fence-repair-v3`. Regression tests assert all
+fragments of a long included example retain their source label. The integration
+test derives the expected migration head from `apps/api/alembic.ini`.
+
+**How we checked it:** Hosted CI run `45211237914` passed for commit
+`5cb2422`. Local corpus scan found 158 documents / 2,270 chunks, 0 flagged
+chunks, and 13 secret masks; no email, phone, or IBAN values were masked. After
+re-ingestion the database query confirmed 158 documents, 2,270 chunks, 0
+flagged, 0 above 600 tokens, 0 with odd triple-backtick counts, and
+`0004_chunk_flagged` as the current migration. Re-ran both retrieval baselines:
+AND Recall@5 **0.733**, nDCG@5 **0.626**, MRR **0.589**, code hit@5 **4/9**; OR
+Recall@5 **0.667**, nDCG@5 **0.488**, MRR **0.430**, code hit@5 **3/9**.
+
+**Verification commands:** `uv run --project apps/api ruff format --config
+apps/api/pyproject.toml apps/api evals`; `uv run --project apps/api ruff
+check --config apps/api/pyproject.toml apps/api evals`; unit tests with
+`uv run --project apps/api pytest apps/api/tests evals -q -m "not integration"`;
+result: **91 passed, 1 deselected**. The marked PostgreSQL/pgvector integration
+test passed (**1 passed, 73 deselected**); and both
+`evals/run_retrieval.py` baseline invocations. Exact final test totals are
+recorded here from the final rerun.
+
+**Decision / open question:** Pattern matching is not a guarantee of complete
+PII detection. The current data card describes the actual behavior and
+limitations. M3 access evaluation must build cases from every manifest item
+with a `question` and compare documents by `source_path`; with the current
+synthetic spec this is expected to produce 51 distinct-question cases.
+
+**Blocker / resolution:** The initial card scan also matched an ISBN-like key
+and a long numeric URL component as cards. Context-aware exclusions were added,
+then the whole corpus scan and re-ingestion reported no card masks.
+
+**Next:** Review the changes and, when explicitly authorized, commit as
+`Add PII masking, input guardrails and injection flagging (M1)`.
 
 ## Concepts in plain language
 

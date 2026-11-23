@@ -65,6 +65,7 @@ def search_chunks(
         -- Turn plain user text into terms PostgreSQL's English full-text search understands.
         CROSS JOIN ({query_builder}) AS q
         WHERE c.search_text @@ q.query
+          AND NOT c.flagged
           -- Apply the audience and region restrictions inside the search itself.
           AND d.audience = ANY(%s::text[])
           AND d.region = ANY(%s::text[])

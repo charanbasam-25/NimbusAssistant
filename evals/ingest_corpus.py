@@ -11,6 +11,8 @@ from pathlib import Path
 
 import psycopg
 from nimbus_api.config import database_url
+from nimbus_api.guardrails import GUARDRAILS_VERSION, should_flag_chunk
+from nimbus_api.pii import PII_VERSION, mask_pii
 from psycopg.types.json import Jsonb
 
 ROOT = Path(__file__).resolve().parents[1]
@@ -19,7 +21,7 @@ TOKEN_PATTERN = re.compile(r"\w+|[^\w\s]", re.UNICODE)
 MAX_CHUNK_LEXICAL_TOKENS = 600
 CHUNK_OVERLAP_TOKENS = 80
 PARSER_VERSION = "markdown-includes-fences-v3"
-CHUNKER_VERSION = "heading-paragraph-lexical-600-v2"
+CHUNKER_VERSION = "heading-paragraph-lexical-600-fence-repair-v3"
 FENCE_PATTERN = re.compile(r"(`{3,}|~{3,})")
 INCLUDE_PATTERN = re.compile(r"(?m)^[ \t]*\{\*[ \t]*(?P<body>[^\r\n]*?)[ \t]*\*\}[ \t]*$")
 INCLUDE_OPTION_PATTERN = re.compile(
@@ -173,14 +175,15 @@ def markdown_sections(markdown: str) -> list[tuple[str, str]]:
     return sections
 
 
-def _fence_state_at(text: str, position: int) -> tuple[str, int, str] | None:
+def _fence_state_at(text: str, position: int) -> tuple[str, int, str, str | None] | None:
     """Return the active Markdown fence immediately before a character offset.
 
     The saved opening line lets a continuation chunk reopen the same language
     fence rather than leaving the code fragment looking like ordinary prose.
     """
-    open_fence: tuple[str, int, str] | None = None
+    open_fence: tuple[str, int, str, str | None] | None = None
     offset = 0
+    previous_line = ""
     for line in text.splitlines(keepends=True):
         content = line.rstrip("\r\n")
         # A boundary inside a line has not reached that line's delimiter yet.
@@ -192,7 +195,10 @@ def _fence_state_at(text: str, position: int) -> tuple[str, int, str] | None:
             opening = FENCE_PATTERN.match(content.lstrip(" ")) if indent <= 3 else None
             if opening:
                 delimiter = opening.group(1)
-                open_fence = (delimiter[0], len(delimiter), content)
+                label = previous_line.strip()
+                if not re.fullmatch(r"\[Example source: [^\]\r\n]+\]", label):
+                    label = None
+                open_fence = (delimiter[0], len(delimiter), content, label)
         else:
             bare_fence = re.fullmatch(r"[ \t]*(`{3,}|~{3,})[ \t]*", content)
             if bare_fence:
@@ -201,6 +207,7 @@ def _fence_state_at(text: str, position: int) -> tuple[str, int, str] | None:
                     open_fence = None
 
         offset += len(line)
+        previous_line = content
     return open_fence
 
 
@@ -208,7 +215,11 @@ def _repair_fence_boundaries(text: str, start: int, end: int) -> str:
     """Make a substring independently renderable if it starts/ends in code."""
     opening = _fence_state_at(text, start)
     closing = _fence_state_at(text, end)
-    prefix = f"{opening[2]}\n" if opening else ""
+    prefix = ""
+    if opening:
+        if opening[3]:
+            prefix += f"{opening[3]}\n"
+        prefix += f"{opening[2]}\n"
     suffix = f"\n{closing[0] * closing[1]}" if closing else ""
     return prefix + text[start:end] + suffix
 
@@ -338,6 +349,8 @@ def ingest(source_root: Path, manifest: dict) -> dict:
 
     loaded_documents = 0
     loaded_chunks = 0
+    flagged_chunks = 0
+    pii_masked: dict[str, int] = {}
     file_records = []
     with psycopg.connect(database_url()) as connection, connection.transaction():
         # Remove only explicitly excluded pages from this exact pinned snapshot.
@@ -352,12 +365,22 @@ def ingest(source_root: Path, manifest: dict) -> dict:
             content_hash = hashlib.sha256(source_markdown.encode("utf-8")).hexdigest()
             relative_path = path.relative_to(docs_dir)
             source_path = relative_path.as_posix()
-            title = markdown_title(source_markdown, path.stem.replace("-", " ").title())
             markdown = expand_code_includes(
                 source_markdown,
                 docs_base=docs_dir.parent,
                 source_root=source_root,
             )
+            # Mask the complete expanded page before splitting so no sensitive
+            # token can be divided across overlapping chunks.
+            masked = mask_pii(markdown)
+            markdown = masked.text
+            for category, count in masked.counts.items():
+                pii_masked[category] = pii_masked.get(category, 0) + count
+            title = markdown_title(markdown, path.stem.replace("-", " ").title())
+            title_masked = mask_pii(title)
+            title = title_masked.text
+            for category, count in title_masked.counts.items():
+                pii_masked[category] = pii_masked.get(category, 0) + count
             chunks = make_chunks(markdown)
             if not chunks:
                 continue
@@ -408,22 +431,30 @@ def ingest(source_root: Path, manifest: dict) -> dict:
                     "sha256:" + hashlib.sha256(str(chunk["content"]).encode("utf-8")).hexdigest()
                 )
                 processing = Jsonb(
-                    {"parser_version": PARSER_VERSION, "chunker_version": CHUNKER_VERSION}
+                    {
+                        "parser_version": PARSER_VERSION,
+                        "chunker_version": CHUNKER_VERSION,
+                        "pii_masker": PII_VERSION,
+                        "injection_detector": GUARDRAILS_VERSION,
+                    }
                 )
+                flagged = should_flag_chunk(str(chunk["content"]))
+                flagged_chunks += int(flagged)
                 connection.execute(
                     """
                         INSERT INTO chunks (
                             document_id, ordinal, heading, content, token_count,
-                            embedding_input, content_hash, processing
+                            embedding_input, content_hash, processing, flagged
                         )
-                        VALUES (%s, %s, %s, %s, %s, %s, %s, %s)
+                        VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s)
                         ON CONFLICT (document_id, ordinal)
                         DO UPDATE SET heading = EXCLUDED.heading,
                                       content = EXCLUDED.content,
                                       token_count = EXCLUDED.token_count,
                                       embedding_input = EXCLUDED.embedding_input,
                                       content_hash = EXCLUDED.content_hash,
-                                      processing = EXCLUDED.processing
+                                      processing = EXCLUDED.processing,
+                                      flagged = EXCLUDED.flagged
                         """,
                     (
                         document_id,
@@ -434,6 +465,7 @@ def ingest(source_root: Path, manifest: dict) -> dict:
                         embedding_input,
                         chunk_hash,
                         processing,
+                        flagged,
                     ),
                 )
 
@@ -455,6 +487,8 @@ def ingest(source_root: Path, manifest: dict) -> dict:
         "excluded_paths": sorted(excluded_paths),
         "documents_loaded": loaded_documents,
         "chunks_loaded": loaded_chunks,
+        "flagged_chunks": flagged_chunks,
+        "pii_masked": pii_masked,
         "files": file_records,
     }
 
@@ -502,7 +536,8 @@ def main() -> None:
     args.report.write_text(json.dumps(report, indent=2) + "\n", encoding="utf-8")
     print(
         f"Loaded {report['documents_loaded']} documents and {report['chunks_loaded']} chunks "
-        f"from commit {report['source_commit']}. Report: {args.report}"
+        f"from commit {report['source_commit']}; flagged {report['flagged_chunks']} chunks; "
+        f"PII masks: {json.dumps(report['pii_masked'], sort_keys=True)}. Report: {args.report}"
     )
 
 
