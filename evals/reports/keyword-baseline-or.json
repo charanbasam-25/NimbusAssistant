@@ -1,0 +1,344 @@
+{
+  "baseline": "postgresql_full_text_ts_rank_cd_or",
+  "candidate_chunks": 20,
+  "code_example_summary": {
+    "hit_at_k": 0.3333333333333333,
+    "questions": 9
+  },
+  "dataset": "evals/datasets/retrieval.jsonl",
+  "k": 5,
+  "query_mode": "or",
+  "results": [
+    {
+      "candidate_chunks": 20,
+      "id": "synthetic-body-001",
+      "metrics": {
+        "mrr": 0.0,
+        "ndcg": 0.0,
+        "recall": 0.0
+      },
+      "provenance": "synthetic",
+      "retrieved_source_paths": [
+        "how-to/migrate-from-pydantic-v1-to-pydantic-v2.md",
+        "advanced/path-operation-advanced-configuration.md",
+        "how-to/custom-request-and-route.md",
+        "tutorial/response-model.md",
+        "advanced/events.md"
+      ],
+      "slice": "general"
+    },
+    {
+      "candidate_chunks": 20,
+      "id": "synthetic-query-params-001",
+      "metrics": {
+        "mrr": 0.3333333333333333,
+        "ndcg": 0.5,
+        "recall": 1.0
+      },
+      "provenance": "synthetic",
+      "retrieved_source_paths": [
+        "tutorial/query-params-str-validations.md",
+        "release-notes.md",
+        "tutorial/query-params.md",
+        "advanced/advanced-python-types.md",
+        "tutorial/dependencies/sub-dependencies.md"
+      ],
+      "slice": "general"
+    },
+    {
+      "candidate_chunks": 20,
+      "id": "synthetic-path-params-001",
+      "metrics": {
+        "mrr": 0.0,
+        "ndcg": 0.0,
+        "recall": 0.0
+      },
+      "provenance": "synthetic",
+      "retrieved_source_paths": [
+        "tutorial/path-params-numeric-validations.md",
+        "tutorial/bigger-applications.md",
+        "tutorial/query-params.md",
+        "tutorial/dependencies/index.md",
+        "release-notes.md"
+      ],
+      "slice": "general"
+    },
+    {
+      "candidate_chunks": 20,
+      "id": "synthetic-response-model-001",
+      "metrics": {
+        "mrr": 1.0,
+        "ndcg": 1.0,
+        "recall": 1.0
+      },
+      "provenance": "synthetic",
+      "retrieved_source_paths": [
+        "tutorial/response-model.md",
+        "release-notes.md",
+        "how-to/custom-request-and-route.md",
+        "advanced/json-base64-bytes.md",
+        "tutorial/body-updates.md"
+      ],
+      "slice": "general"
+    },
+    {
+      "candidate_chunks": 20,
+      "id": "synthetic-first-steps-001",
+      "metrics": {
+        "mrr": 0.25,
+        "ndcg": 0.43067655807339306,
+        "recall": 1.0
+      },
+      "provenance": "synthetic",
+      "retrieved_source_paths": [
+        "tutorial/index.md",
+        "fastapi-cli.md",
+        "index.md",
+        "tutorial/first-steps.md",
+        "release-notes.md"
+      ],
+      "slice": "short_query"
+    },
+    {
+      "candidate_chunks": 20,
+      "id": "synthetic-oauth-scopes-001",
+      "metrics": {
+        "mrr": 1.0,
+        "ndcg": 1.0,
+        "recall": 1.0
+      },
+      "provenance": "synthetic",
+      "retrieved_source_paths": [
+        "advanced/security/oauth2-scopes.md",
+        "tutorial/index.md",
+        "how-to/custom-docs-ui-assets.md",
+        "advanced/custom-response.md",
+        "advanced/events.md"
+      ],
+      "slice": "general"
+    },
+    {
+      "candidate_chunks": 20,
+      "code_hit_at_k": 0.0,
+      "expected_code_sources": [
+        "docs_src/body/tutorial001.py"
+      ],
+      "id": "synthetic-code-body-001",
+      "metrics": {
+        "mrr": 0.0,
+        "ndcg": 0.0,
+        "recall": 0.0
+      },
+      "provenance": "synthetic",
+      "retrieved_source_paths": [
+        "tutorial/stream-json-lines.md",
+        "tutorial/body-updates.md",
+        "tutorial/query-params.md",
+        "tutorial/server-sent-events.md",
+        "advanced/testing-events.md"
+      ],
+      "slice": "general"
+    },
+    {
+      "candidate_chunks": 20,
+      "code_hit_at_k": 0.0,
+      "expected_code_sources": [
+        "docs_src/security/tutorial004.py"
+      ],
+      "id": "synthetic-code-jwt-001",
+      "metrics": {
+        "mrr": 0.3333333333333333,
+        "ndcg": 0.5,
+        "recall": 1.0
+      },
+      "provenance": "synthetic",
+      "retrieved_source_paths": [
+        "advanced/security/oauth2-scopes.md",
+        "tutorial/security/first-steps.md",
+        "tutorial/security/oauth2-jwt.md",
+        "tutorial/security/simple-oauth2.md"
+      ],
+      "slice": "general"
+    },
+    {
+      "candidate_chunks": 20,
+      "code_hit_at_k": 1.0,
+      "expected_code_sources": [
+        "docs_src/request_files/tutorial003.py"
+      ],
+      "id": "synthetic-code-upload-001",
+      "metrics": {
+        "mrr": 1.0,
+        "ndcg": 1.0,
+        "recall": 1.0
+      },
+      "provenance": "synthetic",
+      "retrieved_source_paths": [
+        "tutorial/request-files.md",
+        "advanced/stream-data.md",
+        "tutorial/request-forms-and-files.md",
+        "tutorial/bigger-applications.md",
+        "advanced/custom-response.md"
+      ],
+      "slice": "general"
+    },
+    {
+      "candidate_chunks": 20,
+      "code_hit_at_k": 0.0,
+      "expected_code_sources": [
+        "docs_src/body/tutorial001.py"
+      ],
+      "id": "synthetic-natural-body-001",
+      "metrics": {
+        "mrr": 0.0,
+        "ndcg": 0.0,
+        "recall": 0.0
+      },
+      "provenance": "synthetic",
+      "retrieved_source_paths": [
+        "tutorial/stream-json-lines.md",
+        "advanced/path-operation-advanced-configuration.md",
+        "tutorial/body-multiple-params.md",
+        "tutorial/body-updates.md",
+        "tutorial/server-sent-events.md"
+      ],
+      "slice": "general"
+    },
+    {
+      "candidate_chunks": 20,
+      "code_hit_at_k": 0.0,
+      "expected_code_sources": [
+        "docs_src/body/tutorial001.py"
+      ],
+      "id": "synthetic-natural-body-002",
+      "metrics": {
+        "mrr": 0.0,
+        "ndcg": 0.0,
+        "recall": 0.0
+      },
+      "provenance": "synthetic",
+      "retrieved_source_paths": [
+        "advanced/path-operation-advanced-configuration.md",
+        "how-to/migrate-from-pydantic-v1-to-pydantic-v2.md",
+        "advanced/json-base64-bytes.md",
+        "tutorial/response-model.md",
+        "features.md"
+      ],
+      "slice": "general"
+    },
+    {
+      "candidate_chunks": 20,
+      "code_hit_at_k": 0.0,
+      "expected_code_sources": [
+        "docs_src/security/tutorial004.py"
+      ],
+      "id": "synthetic-natural-jwt-001",
+      "metrics": {
+        "mrr": 0.3333333333333333,
+        "ndcg": 0.5,
+        "recall": 1.0
+      },
+      "provenance": "synthetic",
+      "retrieved_source_paths": [
+        "tutorial/security/first-steps.md",
+        "benchmarks.md",
+        "tutorial/security/oauth2-jwt.md",
+        "deployment/concepts.md",
+        "tutorial/sql-databases.md"
+      ],
+      "slice": "general"
+    },
+    {
+      "candidate_chunks": 20,
+      "code_hit_at_k": 0.0,
+      "expected_code_sources": [
+        "docs_src/security/tutorial004.py"
+      ],
+      "id": "synthetic-natural-jwt-002",
+      "metrics": {
+        "mrr": 0.0,
+        "ndcg": 0.0,
+        "recall": 0.0
+      },
+      "provenance": "synthetic",
+      "retrieved_source_paths": [
+        "tutorial/index.md",
+        "tutorial/security/first-steps.md",
+        "advanced/security/oauth2-scopes.md",
+        "tutorial/security/simple-oauth2.md",
+        "advanced/path-operation-advanced-configuration.md"
+      ],
+      "slice": "general"
+    },
+    {
+      "candidate_chunks": 20,
+      "code_hit_at_k": 1.0,
+      "expected_code_sources": [
+        "docs_src/request_files/tutorial003.py"
+      ],
+      "id": "synthetic-natural-upload-001",
+      "metrics": {
+        "mrr": 1.0,
+        "ndcg": 1.0,
+        "recall": 1.0
+      },
+      "provenance": "synthetic",
+      "retrieved_source_paths": [
+        "tutorial/request-files.md",
+        "advanced/stream-data.md",
+        "tutorial/index.md",
+        "tutorial/request-forms-and-files.md",
+        "advanced/custom-response.md"
+      ],
+      "slice": "general"
+    },
+    {
+      "candidate_chunks": 20,
+      "code_hit_at_k": 1.0,
+      "expected_code_sources": [
+        "docs_src/request_files/tutorial003.py"
+      ],
+      "id": "synthetic-natural-upload-002",
+      "metrics": {
+        "mrr": 1.0,
+        "ndcg": 1.0,
+        "recall": 1.0
+      },
+      "provenance": "synthetic",
+      "retrieved_source_paths": [
+        "tutorial/request-files.md",
+        "advanced/stream-data.md",
+        "tutorial/bigger-applications.md",
+        "tutorial/request-forms-and-files.md",
+        "advanced/custom-response.md"
+      ],
+      "slice": "general"
+    }
+  ],
+  "summary": {
+    "overall": {
+      "mrr": 0.4166666666666667,
+      "ndcg_at_k": 0.46204510387155956,
+      "questions": 15,
+      "recall_at_k": 0.6
+    },
+    "provenance:synthetic": {
+      "mrr": 0.4166666666666667,
+      "ndcg_at_k": 0.46204510387155956,
+      "questions": 15,
+      "recall_at_k": 0.6
+    },
+    "slice:general": {
+      "mrr": 0.42857142857142855,
+      "ndcg_at_k": 0.4642857142857143,
+      "questions": 14,
+      "recall_at_k": 0.5714285714285714
+    },
+    "slice:short_query": {
+      "mrr": 0.25,
+      "ndcg_at_k": 0.43067655807339306,
+      "questions": 1,
+      "recall_at_k": 1.0
+    }
+  }
+}

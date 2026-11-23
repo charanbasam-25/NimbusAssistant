@@ -116,9 +116,18 @@ Use `--query-mode or` to run the experimental any-term matcher. The current
 15-question synthetic comparison favored the default AND matcher overall, so
 OR remains an evaluation option and is not used by the API.
 
+By default, the page metric uses 5 distinct pages selected from up to 20
+candidate chunks. To compare a smaller pool, pass `--candidates 5` explicitly.
+
 The runner reads database settings from the root `.env` file. It reports
 Recall@5, nDCG@5, and MRR overall, by provenance, and for the `short_query`
 slice. Metrics are calculated at source-document level using binary relevance.
+It fetches up to 20 ranked candidate chunks (configurable with
+`--candidates`, which must be at least `--k`) and then keeps each page's best
+rank, so multiple chunks from one page do not consume multiple top-k slots.
+The report records the number of candidate chunks considered per question.
+Code-example hit@k is intentionally still calculated over the first k chunks,
+not the collapsed page list, because its label identifies an expected passage.
 
 Questions can optionally include `expected_code_sources`, a list of source
 paths expected inside returned code passages. For those rows, the report adds

@@ -27,7 +27,8 @@ source code or architecture decisions.
 ## Project status at a glance
 
 Nimbus is a FastAPI support-assistant capstone. Its current corpus is a pinned
-snapshot of the official FastAPI documentation. The project has a PostgreSQL
+snapshot of the official FastAPI documentation: 158 Markdown documents and,
+after milestone 12 re-ingestion, 2,265 chunks. The project has a PostgreSQL
 keyword-search baseline and evaluation scaffold, but it is **not yet a complete
 RAG assistant**: embeddings and answer generation have not been implemented.
 
@@ -320,9 +321,56 @@ the AND baseline on this set. Keep AND as production default; retain OR only as
 an evaluation option. The paraphrase failures likely need semantic retrieval
 or a carefully measured hybrid rather than indiscriminately broadening terms.
 
-**Next:** Implement vector retrieval as a separate candidate and compare it
-with the unchanged AND baseline using the same source-page and code-passage
-metrics.
+**Next:** The original comparison retrieved only five candidate chunks. The
+updated evaluator in milestone 12 considers up to 20 candidates before page
+deduplication, so those earlier OR scores are not directly comparable with the
+new scores.
+
+### 12. Harden Markdown fences and page-level evaluation — 2026-11-23
+
+**Goal:** Keep fenced code intact during Markdown parsing, require an explicit
+region on every user row, and prevent repeated chunks from one document from
+occupying multiple evaluation page slots.
+
+**What changed:** `markdown_sections()` now tracks backtick and tilde fences;
+inside a fence, headings and blank lines remain code, and only a bare matching
+fence of equal or greater length closes it. The parser version is
+`markdown-includes-fences-v3`. Migration `0003_user_region_required` makes
+`users.home_region` non-null. The retrieval evaluator fetches up to 20 candidate
+chunks, collapses those to each page's best-ranked chunk, and scores the top-k
+distinct pages. `code_hit_at_k` continues to use the top-k chunks. Added five
+regression tests and documented the change in the evaluation guide and new
+implementation, handoff, and synthetic-corpus documents.
+
+**How we checked it:** `uv sync --project apps/api --all-groups` completed;
+`uv run --project apps/api pytest apps/api/tests evals -q` passed (**24
+passed**); `git diff --check` passed. Alembic applied
+`0003_user_region_required`; `\d users` showed `home_region` as `not null` and
+`alembic_version` as `0003_user_region_required`. Re-ingestion loaded 158
+documents and 2,265 chunks from pinned commit
+`05e6df7e906c3decba377c37548019973f40bf15`.
+
+Before/after database checks: chunks with a heading matching `^(\d+)!` fell
+from **9 to 0**; chunks with an odd count of triple-backtick delimiters fell
+from **104 to 58**. The latter dropped by 46 chunks but remains nonzero, so
+some code chunks still have unpaired delimiters and need investigation before
+claiming fully fence-balanced chunking.
+
+With `k=5` and up to 20 candidate chunks, the AND run scored Recall@5 **0.733**,
+nDCG@5 **0.626**, MRR **0.589**, and code hit@5 **4/9**. OR scored Recall@5
+**0.600**, nDCG@5 **0.462**, MRR **0.417**, and code hit@5 **3/9**. AND remains
+the stronger keyword baseline on this 15-question synthetic set. Reports are
+at `evals/reports/keyword-baseline.json` and
+`evals/reports/keyword-baseline-or.json`.
+
+**Blockers / resolutions:** The first migration command built a database URL
+without escaping reserved characters in the password and failed to resolve
+the host. URL-encoding the username/password fixed the connection; the
+migration then ran successfully. Ruff lint/format checks could not run because
+`ruff` is not installed in the API environment; no lint result is claimed.
+
+**Next:** Investigate the 58 remaining chunks with odd triple-backtick counts,
+then continue with M1 PII masking, guardrails, and flagged-chunk filtering.
 
 ## Concepts in plain language
 

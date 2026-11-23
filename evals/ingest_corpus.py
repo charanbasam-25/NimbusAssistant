@@ -21,8 +21,9 @@ MANIFEST_PATH = ROOT / "docs" / "corpus-manifest.json"
 TOKEN_PATTERN = re.compile(r"\w+|[^\w\s]", re.UNICODE)
 MAX_CHUNK_LEXICAL_TOKENS = 600
 CHUNK_OVERLAP_TOKENS = 80
-PARSER_VERSION = "markdown-includes-v2"
+PARSER_VERSION = "markdown-includes-fences-v3"
 CHUNKER_VERSION = "heading-paragraph-lexical-600-v2"
+FENCE_PATTERN = re.compile(r"(`{3,}|~{3,})")
 INCLUDE_PATTERN = re.compile(
     r"(?m)^[ \t]*\{\*[ \t]*(?P<body>[^\r\n]*?)[ \t]*\*\}[ \t]*$"
 )
@@ -160,6 +161,7 @@ def markdown_sections(markdown: str) -> list[tuple[str, str]]:
     sections: list[tuple[str, str]] = []
     heading = ""
     paragraph: list[str] = []
+    open_fence: tuple[str, int] | None = None
 
     def flush_paragraph() -> None:
         text = "\n".join(paragraph).strip()
@@ -168,6 +170,27 @@ def markdown_sections(markdown: str) -> list[tuple[str, str]]:
         paragraph.clear()
 
     for line in lines:
+        if open_fence is not None:
+            # Inside a code block, Markdown-looking headings and blank lines
+            # are literal source and must stay together in this section.
+            paragraph.append(line.rstrip())
+            bare_fence = re.fullmatch(r"[ \t]*(`{3,}|~{3,})[ \t]*", line)
+            if bare_fence:
+                delimiter = bare_fence.group(1)
+                if delimiter[0] == open_fence[0] and len(delimiter) >= open_fence[1]:
+                    open_fence = None
+            continue
+
+        # A fence can have an info string (for example ```python), but must
+        # start the line; ordinary inline backticks are not block delimiters.
+        indent = len(line) - len(line.lstrip(" "))
+        opening = FENCE_PATTERN.match(line.lstrip(" ")) if indent <= 3 else None
+        if opening:
+            delimiter = opening.group(1)
+            open_fence = (delimiter[0], len(delimiter))
+            paragraph.append(line.rstrip())
+            continue
+
         if re.match(r"^#{1,6}\s+", line):
             flush_paragraph()
             heading = re.sub(r"^#{1,6}\s+", "", line).strip()

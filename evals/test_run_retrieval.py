@@ -4,7 +4,7 @@ import json
 
 import pytest
 
-from run_retrieval import load_questions, score_code_retrieval
+from run_retrieval import load_questions, score_code_retrieval, top_k_documents
 
 
 def test_code_score_hits_when_expected_source_is_in_top_k() -> None:
@@ -58,3 +58,25 @@ def test_loader_rejects_empty_code_source_labels(tmp_path) -> None:
 
     with pytest.raises(ValueError, match="expected_code_sources"):
         load_questions(dataset)
+
+
+def test_top_k_documents_does_not_spend_slots_on_repeated_pages() -> None:
+    passages = [
+        {"source_path": "a.md", "ordinal": 0},
+        {"source_path": "a.md", "ordinal": 1},
+        {"source_path": "a.md", "ordinal": 2},
+        {"source_path": "b.md", "ordinal": 0},
+        {"source_path": "c.md", "ordinal": 0},
+    ]
+
+    assert top_k_documents(passages, 2) == [passages[0], passages[3]]
+
+
+def test_top_k_documents_keeps_each_pages_best_rank() -> None:
+    passages = [
+        {"source_path": "b.md", "score": 0.9},
+        {"source_path": "a.md", "score": 0.8},
+        {"source_path": "b.md", "score": 0.7},
+    ]
+
+    assert top_k_documents(passages, 2) == passages[:2]

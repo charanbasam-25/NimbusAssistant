@@ -6,6 +6,7 @@ from ingest_corpus import (
     TOKEN_PATTERN,
     expand_code_includes,
     make_chunks,
+    markdown_sections,
     split_long_text,
 )
 
@@ -57,6 +58,46 @@ def test_normal_paragraph_grouping_stays_unchanged() -> None:
     assert len(chunks) == 1
     assert chunks[0]["heading"] == "Intro"
     assert chunks[0]["content"] == "First short paragraph.\n\nSecond short paragraph."
+
+
+def test_fenced_code_keeps_hash_lines_and_blank_lines_together() -> None:
+    markdown = "# Example\n\n```Dockerfile\nRUN echo hi # (1)!\n\n# not a heading\n```\n\nAfter code."
+
+    sections = markdown_sections(markdown)
+
+    assert sections == [
+        ("Example", "```Dockerfile\nRUN echo hi # (1)!\n\n# not a heading\n```"),
+        ("Example", "After code."),
+    ]
+
+
+def test_heading_after_closed_tilde_fence_starts_new_section() -> None:
+    markdown = "~~~python\nprint('hi')\n~~~~\n## Next section\nContent."
+
+    assert markdown_sections(markdown) == [
+        ("", "~~~python\nprint('hi')\n~~~~"),
+        ("Next section", "Content."),
+    ]
+
+
+def test_expanded_include_with_hash_comments_stays_in_one_section(tmp_path) -> None:
+    docs_base = tmp_path / "docs" / "en"
+    docs_src = tmp_path / "docs_src"
+    docs_base.mkdir(parents=True)
+    docs_src.mkdir()
+    (docs_src / "example.py").write_text("# comment\n\nprint('hi')\n", encoding="utf-8")
+    markdown = expand_code_includes(
+        "# Example\n\n{* ../../docs_src/example.py *}\n\n## Next\nText.",
+        docs_base,
+        tmp_path,
+    )
+
+    sections = markdown_sections(markdown)
+
+    assert len(sections) == 2
+    assert sections[0][0] == "Example"
+    assert "# comment\n\nprint('hi')" in sections[0][1]
+    assert sections[1] == ("Next", "Text.")
 
 
 def test_code_include_expands_to_labeled_fenced_source(tmp_path) -> None:

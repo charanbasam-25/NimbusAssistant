@@ -1,25 +1,34 @@
 {
-  "baseline": "postgresql_full_text_ts_rank_cd",
+  "baseline": "postgresql_full_text_ts_rank_cd_and",
+  "candidate_chunks": 20,
+  "code_example_summary": {
+    "hit_at_k": 0.4444444444444444,
+    "questions": 9
+  },
   "dataset": "evals/datasets/retrieval.jsonl",
   "k": 5,
+  "query_mode": "and",
   "results": [
     {
+      "candidate_chunks": 15,
       "id": "synthetic-body-001",
       "metrics": {
-        "mrr": 0.5,
-        "ndcg": 0.6309297535714575,
+        "mrr": 1.0,
+        "ndcg": 1.0,
         "recall": 1.0
       },
       "provenance": "synthetic",
       "retrieved_source_paths": [
-        "tutorial/security/get-current-user.md",
         "tutorial/body.md",
+        "tutorial/security/get-current-user.md",
         "advanced/path-operation-advanced-configuration.md",
-        "advanced/using-request-directly.md"
+        "advanced/using-request-directly.md",
+        "advanced/json-base64-bytes.md"
       ],
       "slice": "general"
     },
     {
+      "candidate_chunks": 19,
       "id": "synthetic-query-params-001",
       "metrics": {
         "mrr": 0.5,
@@ -29,11 +38,15 @@
       "provenance": "synthetic",
       "retrieved_source_paths": [
         "tutorial/query-params-str-validations.md",
-        "tutorial/query-params.md"
+        "tutorial/query-params.md",
+        "tutorial/query-param-models.md",
+        "tutorial/cookie-param-models.md",
+        "tutorial/header-param-models.md"
       ],
       "slice": "general"
     },
     {
+      "candidate_chunks": 1,
       "id": "synthetic-path-params-001",
       "metrics": {
         "mrr": 1.0,
@@ -47,6 +60,7 @@
       "slice": "general"
     },
     {
+      "candidate_chunks": 12,
       "id": "synthetic-response-model-001",
       "metrics": {
         "mrr": 0.5,
@@ -58,11 +72,13 @@
         "advanced/custom-response.md",
         "tutorial/response-model.md",
         "release-notes.md",
-        "advanced/response-change-status-code.md"
+        "advanced/response-change-status-code.md",
+        "advanced/response-cookies.md"
       ],
       "slice": "general"
     },
     {
+      "candidate_chunks": 11,
       "id": "synthetic-first-steps-001",
       "metrics": {
         "mrr": 0.3333333333333333,
@@ -74,11 +90,13 @@
         "index.md",
         "fastapi-cli.md",
         "tutorial/first-steps.md",
-        "tutorial/frontend.md"
+        "tutorial/frontend.md",
+        "tutorial/bigger-applications.md"
       ],
       "slice": "short_query"
     },
     {
+      "candidate_chunks": 15,
       "id": "synthetic-oauth-scopes-001",
       "metrics": {
         "mrr": 1.0,
@@ -90,29 +108,196 @@
         "advanced/security/oauth2-scopes.md",
         "reference/dependencies.md",
         "release-notes.md",
-        "tutorial/security/oauth2-jwt.md"
+        "tutorial/security/oauth2-jwt.md",
+        "tutorial/security/simple-oauth2.md"
       ],
+      "slice": "general"
+    },
+    {
+      "candidate_chunks": 20,
+      "code_hit_at_k": 1.0,
+      "expected_code_sources": [
+        "docs_src/body/tutorial001.py"
+      ],
+      "id": "synthetic-code-body-001",
+      "metrics": {
+        "mrr": 1.0,
+        "ndcg": 1.0,
+        "recall": 1.0
+      },
+      "provenance": "synthetic",
+      "retrieved_source_paths": [
+        "tutorial/body.md",
+        "tutorial/body-multiple-params.md",
+        "tutorial/query-param-models.md",
+        "tutorial/header-param-models.md",
+        "tutorial/response-model.md"
+      ],
+      "slice": "general"
+    },
+    {
+      "candidate_chunks": 12,
+      "code_hit_at_k": 1.0,
+      "expected_code_sources": [
+        "docs_src/security/tutorial004.py"
+      ],
+      "id": "synthetic-code-jwt-001",
+      "metrics": {
+        "mrr": 1.0,
+        "ndcg": 1.0,
+        "recall": 1.0
+      },
+      "provenance": "synthetic",
+      "retrieved_source_paths": [
+        "tutorial/security/oauth2-jwt.md",
+        "advanced/security/oauth2-scopes.md"
+      ],
+      "slice": "general"
+    },
+    {
+      "candidate_chunks": 2,
+      "code_hit_at_k": 1.0,
+      "expected_code_sources": [
+        "docs_src/request_files/tutorial003.py"
+      ],
+      "id": "synthetic-code-upload-001",
+      "metrics": {
+        "mrr": 1.0,
+        "ndcg": 1.0,
+        "recall": 1.0
+      },
+      "provenance": "synthetic",
+      "retrieved_source_paths": [
+        "tutorial/request-files.md",
+        "tutorial/request-forms-and-files.md"
+      ],
+      "slice": "general"
+    },
+    {
+      "candidate_chunks": 4,
+      "code_hit_at_k": 0.0,
+      "expected_code_sources": [
+        "docs_src/body/tutorial001.py"
+      ],
+      "id": "synthetic-natural-body-001",
+      "metrics": {
+        "mrr": 1.0,
+        "ndcg": 1.0,
+        "recall": 1.0
+      },
+      "provenance": "synthetic",
+      "retrieved_source_paths": [
+        "tutorial/body.md",
+        "tutorial/body-multiple-params.md"
+      ],
+      "slice": "general"
+    },
+    {
+      "candidate_chunks": 4,
+      "code_hit_at_k": 0.0,
+      "expected_code_sources": [
+        "docs_src/body/tutorial001.py"
+      ],
+      "id": "synthetic-natural-body-002",
+      "metrics": {
+        "mrr": 0.0,
+        "ndcg": 0.0,
+        "recall": 0.0
+      },
+      "provenance": "synthetic",
+      "retrieved_source_paths": [
+        "advanced/path-operation-advanced-configuration.md",
+        "tutorial/body-multiple-params.md",
+        "features.md"
+      ],
+      "slice": "general"
+    },
+    {
+      "candidate_chunks": 0,
+      "code_hit_at_k": 0.0,
+      "expected_code_sources": [
+        "docs_src/security/tutorial004.py"
+      ],
+      "id": "synthetic-natural-jwt-001",
+      "metrics": {
+        "mrr": 0.0,
+        "ndcg": 0.0,
+        "recall": 0.0
+      },
+      "provenance": "synthetic",
+      "retrieved_source_paths": [],
+      "slice": "general"
+    },
+    {
+      "candidate_chunks": 0,
+      "code_hit_at_k": 0.0,
+      "expected_code_sources": [
+        "docs_src/security/tutorial004.py"
+      ],
+      "id": "synthetic-natural-jwt-002",
+      "metrics": {
+        "mrr": 0.0,
+        "ndcg": 0.0,
+        "recall": 0.0
+      },
+      "provenance": "synthetic",
+      "retrieved_source_paths": [],
+      "slice": "general"
+    },
+    {
+      "candidate_chunks": 2,
+      "code_hit_at_k": 1.0,
+      "expected_code_sources": [
+        "docs_src/request_files/tutorial003.py"
+      ],
+      "id": "synthetic-natural-upload-001",
+      "metrics": {
+        "mrr": 0.5,
+        "ndcg": 0.6309297535714575,
+        "recall": 1.0
+      },
+      "provenance": "synthetic",
+      "retrieved_source_paths": [
+        "tutorial/request-forms-and-files.md",
+        "tutorial/request-files.md"
+      ],
+      "slice": "general"
+    },
+    {
+      "candidate_chunks": 0,
+      "code_hit_at_k": 0.0,
+      "expected_code_sources": [
+        "docs_src/request_files/tutorial003.py"
+      ],
+      "id": "synthetic-natural-upload-002",
+      "metrics": {
+        "mrr": 0.0,
+        "ndcg": 0.0,
+        "recall": 0.0
+      },
+      "provenance": "synthetic",
+      "retrieved_source_paths": [],
       "slice": "general"
     }
   ],
   "summary": {
     "overall": {
-      "mrr": 0.6388888888888888,
-      "ndcg_at_k": 0.7321315434523954,
-      "questions": 6,
-      "recall_at_k": 1.0
+      "mrr": 0.5888888888888889,
+      "ndcg_at_k": 0.6261859507142915,
+      "questions": 15,
+      "recall_at_k": 0.7333333333333333
     },
     "provenance:synthetic": {
-      "mrr": 0.6388888888888888,
-      "ndcg_at_k": 0.7321315434523954,
-      "questions": 6,
-      "recall_at_k": 1.0
+      "mrr": 0.5888888888888889,
+      "ndcg_at_k": 0.6261859507142915,
+      "questions": 15,
+      "recall_at_k": 0.7333333333333333
     },
     "slice:general": {
-      "mrr": 0.7,
-      "ndcg_at_k": 0.7785578521428745,
-      "questions": 5,
-      "recall_at_k": 1.0
+      "mrr": 0.6071428571428571,
+      "ndcg_at_k": 0.6351992329081695,
+      "questions": 14,
+      "recall_at_k": 0.7142857142857143
     },
     "slice:short_query": {
       "mrr": 0.3333333333333333,

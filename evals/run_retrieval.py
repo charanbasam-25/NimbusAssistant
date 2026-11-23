@@ -18,6 +18,9 @@ from nimbus_api.retrieval import PERSONA_ACCESS, search_chunks
 
 
 ROOT = Path(__file__).resolve().parents[1]
+MAX_CANDIDATE_CHUNKS = 20
+
+
 def database_url() -> str:
     load_dotenv(ROOT / ".env")
     configured_url = os.environ.get("DATABASE_URL")
@@ -120,6 +123,22 @@ def retrieve_keyword_baseline(
     )
 
 
+def top_k_documents(
+    passages: list[dict[str, Any]], k: int
+) -> list[dict[str, Any]]:
+    """Keep each page's best-ranked passage, then return the first k pages."""
+    seen_paths: set[str] = set()
+    documents: list[dict[str, Any]] = []
+    for passage in passages:
+        source_path = passage["source_path"]
+        if source_path not in seen_paths:
+            seen_paths.add(source_path)
+            documents.append(passage)
+            if len(documents) == k:
+                break
+    return documents
+
+
 def score_code_retrieval(
     passages: list[dict[str, Any]], expected_code_sources: list[str], k: int
 ) -> float:
@@ -160,6 +179,12 @@ def main() -> None:
     parser.add_argument("--output", type=Path)
     parser.add_argument("--k", type=int, default=5)
     parser.add_argument(
+        "--candidates",
+        type=int,
+        default=MAX_CANDIDATE_CHUNKS,
+        help="maximum ranked chunks to consider before collapsing to distinct pages (k to 20)",
+    )
+    parser.add_argument(
         "--query-mode",
         choices=("and", "or"),
         default="and",
@@ -168,16 +193,20 @@ def main() -> None:
     args = parser.parse_args()
     if args.k < 1:
         parser.error("--k must be at least 1")
+    if not args.k <= args.candidates <= MAX_CANDIDATE_CHUNKS:
+        parser.error(f"--candidates must be between --k and {MAX_CANDIDATE_CHUNKS}")
 
     questions = load_questions(args.dataset)
     results = []
     with psycopg.connect(database_url()) as connection:
         for question in questions:
             passages = retrieve_keyword_baseline(
-                connection, question, args.k, query_mode=args.query_mode
+                connection, question, args.candidates, query_mode=args.query_mode
             )
-            # The labels are document paths, so collapse repeated chunks from the same page.
-            retrieved = list(dict.fromkeys(passage["source_path"] for passage in passages))
+            # Rank source pages by their best chunk, so one verbose page cannot
+            # consume several of the evaluation's top-k relevance slots.
+            top_documents = top_k_documents(passages, args.k)
+            retrieved = [passage["source_path"] for passage in top_documents]
             metrics = score_retrieval(
                 retrieved,
                 set(question["relevant_source_paths"]),
@@ -188,12 +217,13 @@ def main() -> None:
                 "provenance": question["provenance"],
                 "slice": question["slice"],
                 "retrieved_source_paths": retrieved,
+                "candidate_chunks": len(passages),
                 "metrics": metrics,
             }
             if "expected_code_sources" in question:
                 result["expected_code_sources"] = question["expected_code_sources"]
                 result["code_hit_at_k"] = score_code_retrieval(
-                    passages, question["expected_code_sources"], args.k
+                    passages[: args.k], question["expected_code_sources"], args.k
                 )
             results.append(result)
 
@@ -207,6 +237,7 @@ def main() -> None:
         "baseline": f"postgresql_full_text_ts_rank_cd_{args.query_mode}",
         "query_mode": args.query_mode,
         "k": args.k,
+        "candidate_chunks": args.candidates,
         "dataset": str(args.dataset),
         "summary": {key: aggregate(rows) for key, rows in sorted(grouped.items())},
         "results": results,
