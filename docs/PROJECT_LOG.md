@@ -28,7 +28,9 @@ source code or architecture decisions.
 
 Nimbus is a FastAPI support-assistant capstone. Its current corpus is a pinned
 snapshot of the official FastAPI documentation: 158 Markdown documents and,
-after milestone 12 re-ingestion, 2,265 chunks. The project has a PostgreSQL
+after milestone 13 re-ingestion, 2,265 chunks. Every stored chunk now has
+balanced triple-backtick fences and remains within the 600-token lexical cap.
+The project has a PostgreSQL
 keyword-search baseline and evaluation scaffold, but it is **not yet a complete
 RAG assistant**: embeddings and answer generation have not been implemented.
 
@@ -369,8 +371,52 @@ the host. URL-encoding the username/password fixed the connection; the
 migration then ran successfully. Ruff lint/format checks could not run because
 `ruff` is not installed in the API environment; no lint result is claimed.
 
-**Next:** Investigate the 58 remaining chunks with odd triple-backtick counts,
-then continue with M1 PII masking, guardrails, and flagged-chunk filtering.
+**Next:** With fence balance and local M0 checks verified, complete M0 by
+checking the hosted GitHub Actions run after the owner authorizes a push; then
+continue with M1 PII masking, guardrails, and flagged-chunk filtering.
+
+### 13. Repair fences across chunk windows and establish CI — 2026-11-23
+
+**Goal:** Make every oversized code passage independently renderable, then
+establish repeatable lint, unit, migration, and PostgreSQL/pgvector checks.
+
+**What changed:** Investigation of the milestone 12 SQL rows showed that the
+58 odd-fence chunks were partial windows cut from long included code examples.
+The window splitter now tracks an active fence at both character boundaries,
+reopens/closes a fragment as needed, and budgets those added markers inside the
+lexical-token cap. Small test windows also use a smaller overlap so progress
+does not collapse to one token at a time. Added tests for backtick and tilde
+fences. Added Ruff to the dev group, centralized URL construction in
+`nimbus_api.config`, made `POSTGRES_*` the canonical source and percent-encoded
+each component, and made Alembic load the same configuration. Added a marked
+database integration test and a GitHub Actions workflow that checks Ruff,
+formatting, unit tests, Alembic migrations, and pgvector integration.
+
+**How we checked it:** The focused chunker suite passed (11 tests). A full
+in-memory scan of the pinned snapshot produced 2,265 chunks, maximum
+`token_count` 600, zero over-cap chunks, and zero chunks with an odd triple-
+backtick count. After re-ingestion, the SQL diagnostic returned 0 odd-fence
+chunks, 0 chunks above 600 tokens, and 2,265 total chunks (maximum 600).
+`uv sync --project apps/api --locked --all-groups` completed. Ruff lint and
+format checks both passed. Unit tests passed (**30 passed, 1 deselected**),
+the marked PostgreSQL/pgvector integration test passed (**1 passed**), and
+`uv run alembic upgrade head` completed using the shared config. The workflow
+has not yet run on GitHub because this work remains uncommitted and unpushed.
+
+**Decision / open question:** `POSTGRES_USER`, `POSTGRES_PASSWORD`, and
+`POSTGRES_DB` are the canonical inputs when present. A standalone
+`DATABASE_URL` remains supported when those components are absent and must use
+percent-encoded credentials. The project has one shared builder for API,
+ingestion, evaluation, and migrations.
+
+**Blocker / resolution:** Previously, a manually interpolated migration URL
+failed when a password contained reserved URL characters. The shared builder
+now percent-encodes user, password, and database separately; unit tests
+confirm psycopg parses the original values correctly, and Alembic plus the
+database integration check passed locally.
+
+**Next:** Wait for the owner to authorize commit/push, then verify the GitHub
+Actions result. Do not report hosted CI as green until it actually runs.
 
 ## Concepts in plain language
 

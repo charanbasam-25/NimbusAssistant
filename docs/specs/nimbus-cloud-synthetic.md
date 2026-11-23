@@ -23,6 +23,63 @@ region-specific canary facts. Each file ends with the sentence:
 The ingest pipeline must preserve these fields as document metadata and must
 not treat front matter as answer text.
 
+## Manifest JSON shape
+
+The manifest is a JSON object with a schema version, corpus identifier, and a
+`documents` array. Each entry identifies one Markdown file, repeats its access
+labels for validation, and carries the evaluation question. The two entries in
+a regional pair must use the exact same `question` string; only region-specific
+metadata and expected canary facts differ.
+
+```json
+{
+  "schema_version": 1,
+  "corpus_id": "nimbus-cloud-synthetic",
+  "documents": [
+    {
+      "id": "escalation-runbook-r1",
+      "source_path": "internal/escalation-runbook-r1.md",
+      "title": "Internal Escalation Runbook (R1)",
+      "audience": "internal",
+      "region": "R1",
+      "kind": "runbook",
+      "pair": "escalation-runbook",
+      "question": "Which escalation identifier applies to the internal support team in this region?",
+      "expected_canary_facts": { "identifier": "CEDAR-7" }
+    },
+    {
+      "id": "escalation-runbook-r2",
+      "source_path": "internal/escalation-runbook-r2.md",
+      "title": "Internal Escalation Runbook (R2)",
+      "audience": "internal",
+      "region": "R2",
+      "kind": "runbook",
+      "pair": "escalation-runbook",
+      "question": "Which escalation identifier applies to the internal support team in this region?",
+      "expected_canary_facts": { "identifier": "LINDEN-4" }
+    },
+    {
+      "id": "deployment-rollback-global",
+      "source_path": "internal/deployment-rollback.md",
+      "title": "Internal Deployment Rollback Runbook",
+      "audience": "internal",
+      "region": "global",
+      "kind": "runbook",
+      "pair": null,
+      "question": "Which distinctive phrase starts the fictional deployment rollback checklist?",
+      "expected_canary_facts": { "phrase": "SABLE-ROLLBACK-9" }
+    }
+  ]
+}
+```
+
+Each entry has these required fields: `id`, `source_path`, `title`, `audience`,
+`region`, `kind`, `pair`, `question`, and `expected_canary_facts`. `pair` is
+`null` for a global-only runbook. `question` is used to build an evaluation
+case; it is not indexed as document content. `expected_canary_facts` lets the
+access evaluation check the right regional answer without relying only on
+retrieved document IDs.
+
 ## Paired public documents
 
 | Pair | R1 canary | R2 canary |
@@ -37,8 +94,11 @@ not treat front matter as answer text.
 
 ## Internal documents
 
-Create 10 global internal runbooks, each with a distinctive phrase so tests can
-identify the correct document. Three paired topics use these facts:
+The brief calls for 10 internal runbook topics: three region-paired topics
+(six files) and seven global-only topics (seven files), for 13 Markdown files
+total. This interprets “10 runbooks” as 10 logical topics. Every topic has a
+retrieval question; paired files share exactly the same question so the R1/R2
+test changes only the authenticated persona and expected canary.
 
 | Pair | R1 canary | R2 canary |
 | --- | --- | --- |
@@ -46,8 +106,27 @@ identify the correct document. Three paired topics use these facts:
 | `incident-comms` | Notify in 15 minutes | Notify in 30 minutes and provide 72-hour notice |
 | `account-deletion` | Delete after 30 days | Delete after 14 days and retain a GDPR audit log |
 
-The remaining seven global runbooks should be clearly fictional, useful for
-internal-only access tests, and each have a unique retrieval phrase.
+The three shared questions are:
+
+- `escalation-runbook`: “Which escalation identifier applies to the internal
+  support team in this region?”
+- `incident-comms`: “What incident-notification timing applies to the internal
+  team in this region?”
+- `account-deletion`: “What deletion and audit-retention rules apply in this
+  region?”
+
+The seven global-only runbooks must be clearly fictional, useful for
+internal-only access tests, and have a unique phrase and question each:
+
+| Runbook topic | Distinctive phrase | Evaluation question |
+| --- | --- | --- |
+| `deployment-rollback` | `SABLE-ROLLBACK-9` | Which distinctive phrase starts the fictional deployment rollback checklist? |
+| `outage-triage` | `ORBIT-TRIAGE-4` | Which phrase identifies the internal outage-triage checklist? |
+| `credential-rotation` | `COBALT-ROTATE-2` | Which phrase marks completion of the fictional credential-rotation procedure? |
+| `queue-drain` | `MINT-DRAIN-6` | Which phrase should an engineer use to verify the internal queue-drain runbook? |
+| `billing-adjustment` | `KITE-ADJUST-3` | Which phrase identifies the internal billing-adjustment procedure? |
+| `backup-restore` | `EMBER-RESTORE-8` | Which phrase signals the fictional backup-restore checklist? |
+| `service-retirement` | `LANTERN-RETIRE-5` | Which phrase identifies the internal service-retirement runbook? |
 
 ## Adversarial and privacy test fixtures
 

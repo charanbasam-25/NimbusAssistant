@@ -78,13 +78,22 @@ def search_chunks(
     # Convert database rows into named fields, which are easier for FastAPI/UI clients to use.
     return [
         {
-            "chunk_id": str(row[0]), "ordinal": row[1], "heading": row[2],
-            "content": row[3], "document_id": str(row[4]), "source_path": row[5],
-            "source_url": row[6], "title": row[7], "source_commit": row[8],
-            "source_id": row[5], "source_rev": row[8],
+            "chunk_id": str(row[0]),
+            "ordinal": row[1],
+            "heading": row[2],
+            "content": row[3],
+            "document_id": str(row[4]),
+            "source_path": row[5],
+            "source_url": row[6],
+            "title": row[7],
+            "source_commit": row[8],
+            "source_id": row[5],
+            "source_rev": row[8],
             "record_id": f"{row[5]}@{row[8]}/{row[1]}",
-            "embedding_input": row[9], "content_hash": row[10],
-            "embedding_spec": row[11], "processing": row[12],
+            "embedding_input": row[9],
+            "content_hash": row[10],
+            "embedding_spec": row[11],
+            "processing": row[12],
             "classification": {"audience": row[13], "region": row[14]},
             "score": float(row[15]),
         }

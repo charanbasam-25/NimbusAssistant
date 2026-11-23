@@ -1,5 +1,4 @@
 from fastapi.testclient import TestClient
-
 from nimbus_api.main import app
 
 

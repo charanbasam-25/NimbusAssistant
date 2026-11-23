@@ -1,7 +1,6 @@
 from uuid import uuid4
 
 import pytest
-
 from nimbus_api.retrieval import search_chunks
 
 
@@ -23,12 +22,29 @@ class FakeConnection:
 def test_search_chunks_returns_passage_and_source_metadata() -> None:
     chunk_id, document_id = uuid4(), uuid4()
     connection = FakeConnection(
-        [(chunk_id, 2, "Request body", "A body is declared with a Pydantic model.",
-          document_id, "tutorial/body.md", "https://fastapi.tiangolo.com/tutorial/body/",
-          "Request Body", "pinned-sha", "Request Body / Request body: A body is declared with a Pydantic model.",
-          "sha256:content-hash", None,
-          {"parser_version": "markdown-structure-v1", "chunker_version": "heading-paragraph-600-token-v1"},
-          "public", "global", 0.75)]
+        [
+            (
+                chunk_id,
+                2,
+                "Request body",
+                "A body is declared with a Pydantic model.",
+                document_id,
+                "tutorial/body.md",
+                "https://fastapi.tiangolo.com/tutorial/body/",
+                "Request Body",
+                "pinned-sha",
+                "Request Body / Request body: A body is declared with a Pydantic model.",
+                "sha256:content-hash",
+                None,
+                {
+                    "parser_version": "markdown-structure-v1",
+                    "chunker_version": "heading-paragraph-600-token-v1",
+                },
+                "public",
+                "global",
+                0.75,
+            )
+        ]
     )
 
     result = search_chunks(connection, "  request body  ", "guest", 5)
@@ -61,7 +77,9 @@ def test_search_chunks_returns_passage_and_source_metadata() -> None:
     assert connection.parameters == ("request body", ["public"], ["global"], 5)
 
 
-@pytest.mark.parametrize("query,limit", [("  ", 5), ("ok", 5), ("a valid query", 0), ("a valid query", 21)])
+@pytest.mark.parametrize(
+    "query,limit", [("  ", 5), ("ok", 5), ("a valid query", 0), ("a valid query", 21)]
+)
 def test_search_chunks_rejects_invalid_query_or_limit(query, limit) -> None:
     with pytest.raises(ValueError):
         search_chunks(FakeConnection([]), query, "guest", limit)

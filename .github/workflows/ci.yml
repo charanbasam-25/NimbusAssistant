@@ -1,0 +1,61 @@
+name: CI
+
+on:
+  push:
+  pull_request:
+
+permissions:
+  contents: read
+
+jobs:
+  checks:
+    runs-on: ubuntu-latest
+    env:
+      POSTGRES_USER: nimbus
+      POSTGRES_PASSWORD: nimbus-ci-only
+      POSTGRES_DB: nimbus
+      POSTGRES_HOST: localhost
+      POSTGRES_PORT: "5432"
+    services:
+      postgres:
+        image: pgvector/pgvector:pg16
+        env:
+          POSTGRES_USER: nimbus
+          POSTGRES_PASSWORD: nimbus-ci-only
+          POSTGRES_DB: nimbus
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U nimbus -d nimbus"
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 12
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+
+      - name: Install uv and Python
+        uses: astral-sh/setup-uv@68559e99cc807c1eb7e9238fd43a15bba460eec2 # v10.3.3
+        with:
+          python-version: "3.12"
+          enable-cache: true
+          cache-dependency-glob: apps/api/uv.lock
+
+      - name: Install locked dependencies
+        run: uv sync --project apps/api --locked --all-groups
+
+      - name: Lint Python
+        run: uv run --project apps/api ruff check --config apps/api/pyproject.toml apps/api evals
+
+      - name: Check Python formatting
+        run: uv run --project apps/api ruff format --check --config apps/api/pyproject.toml apps/api evals
+
+      - name: Run unit tests
+        run: uv run --project apps/api pytest apps/api/tests evals -q -m "not integration"
+
+      - name: Apply database migrations
+        working-directory: apps/api
+        run: uv run alembic upgrade head
+
+      - name: Run PostgreSQL/pgvector integration tests
+        run: uv run --project apps/api pytest apps/api/tests -q -m integration

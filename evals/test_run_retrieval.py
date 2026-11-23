@@ -3,7 +3,6 @@
 import json
 
 import pytest
-
 from run_retrieval import load_questions, score_code_retrieval, top_k_documents
 
 
@@ -38,9 +37,7 @@ def test_loader_accepts_code_source_labels(tmp_path) -> None:
     dataset = tmp_path / "questions.jsonl"
     dataset.write_text(json.dumps(question) + "\n", encoding="utf-8")
 
-    assert load_questions(dataset)[0]["expected_code_sources"] == [
-        "docs_src/body/tutorial001.py"
-    ]
+    assert load_questions(dataset)[0]["expected_code_sources"] == ["docs_src/body/tutorial001.py"]
 
 
 def test_loader_rejects_empty_code_source_labels(tmp_path) -> None:

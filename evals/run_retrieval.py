@@ -5,38 +5,17 @@ from __future__ import annotations
 import argparse
 import json
 import math
-import os
 from collections import defaultdict
 from pathlib import Path
 from statistics import mean
 from typing import Any
-from urllib.parse import quote
 
 import psycopg
-from dotenv import load_dotenv
+from nimbus_api.config import database_url
 from nimbus_api.retrieval import PERSONA_ACCESS, search_chunks
-
 
 ROOT = Path(__file__).resolve().parents[1]
 MAX_CANDIDATE_CHUNKS = 20
-
-
-def database_url() -> str:
-    load_dotenv(ROOT / ".env")
-    configured_url = os.environ.get("DATABASE_URL")
-    if configured_url:
-        return configured_url.replace("postgresql+psycopg://", "postgresql://", 1)
-
-    required = ("POSTGRES_USER", "POSTGRES_PASSWORD", "POSTGRES_DB")
-    missing = [key for key in required if not os.environ.get(key)]
-    if missing:
-        raise RuntimeError(f"Missing database settings in .env: {', '.join(missing)}")
-
-    user = quote(os.environ["POSTGRES_USER"], safe="")
-    password = quote(os.environ["POSTGRES_PASSWORD"], safe="")
-    database = quote(os.environ["POSTGRES_DB"], safe="")
-    port = os.environ.get("POSTGRES_PORT", "5432")
-    return f"postgresql://{user}:{password}@localhost:{port}/{database}"
 
 
 def load_questions(path: Path) -> list[dict[str, Any]]:
@@ -50,7 +29,7 @@ def load_questions(path: Path) -> list[dict[str, Any]]:
         except json.JSONDecodeError as error:
             raise ValueError(f"{path}:{line_number}: invalid JSON: {error}") from error
         if not isinstance(item, dict):
-            raise ValueError(f"{path}:{line_number}: each question must be a JSON object")
+            raise TypeError(f"{path}:{line_number}: each question must be a JSON object")
 
         required = {
             "id",
@@ -74,11 +53,12 @@ def load_questions(path: Path) -> list[dict[str, Any]]:
             raise ValueError(f"{path}:{line_number}: persona must be guest, R1, or R2")
         if not isinstance(item["slice"], str) or item["slice"] not in {"general", "short_query"}:
             raise ValueError(f"{path}:{line_number}: unsupported slice {item['slice']!r}")
-        if not isinstance(item["provenance"], str) or item["provenance"] not in {"real", "synthetic"}:
+        if not isinstance(item["provenance"], str) or item["provenance"] not in {
+            "real",
+            "synthetic",
+        }:
             raise ValueError(f"{path}:{line_number}: provenance must be real or synthetic")
-        if not isinstance(item["relevant_source_paths"], list) or not item[
-            "relevant_source_paths"
-        ]:
+        if not isinstance(item["relevant_source_paths"], list) or not item["relevant_source_paths"]:
             raise ValueError(f"{path}:{line_number}: relevant_source_paths must be non-empty")
         if not all(
             isinstance(source_path, str) and source_path
@@ -98,9 +78,7 @@ def load_questions(path: Path) -> list[dict[str, Any]]:
                     f"{path}:{line_number}: expected code source paths must be non-empty strings"
                 )
             if len(set(expected_code_sources)) != len(expected_code_sources):
-                raise ValueError(
-                    f"{path}:{line_number}: expected code source paths must be unique"
-                )
+                raise ValueError(f"{path}:{line_number}: expected code source paths must be unique")
         if item["id"] in seen_ids:
             raise ValueError(f"{path}:{line_number}: duplicate id {item['id']!r}")
         seen_ids.add(item["id"])
@@ -123,9 +101,7 @@ def retrieve_keyword_baseline(
     )
 
 
-def top_k_documents(
-    passages: list[dict[str, Any]], k: int
-) -> list[dict[str, Any]]:
+def top_k_documents(passages: list[dict[str, Any]], k: int) -> list[dict[str, Any]]:
     """Keep each page's best-ranked passage, then return the first k pages."""
     seen_paths: set[str] = set()
     documents: list[dict[str, Any]] = []
@@ -145,7 +121,10 @@ def score_code_retrieval(
     """Return 1 when a top-k passage contains one of the expected code files."""
     top_content = "\n".join(str(passage["content"]) for passage in passages[:k])
     return float(
-        any(f"[Example source: {source_path}]" in top_content for source_path in expected_code_sources)
+        any(
+            f"[Example source: {source_path}]" in top_content
+            for source_path in expected_code_sources
+        )
     )
 
 
@@ -153,9 +132,7 @@ def score_retrieval(retrieved: list[str], relevant: set[str], k: int) -> dict[st
     top_k = retrieved[:k]
     hits = [1 if source_path in relevant else 0 for source_path in top_k]
     recall = sum(hits) / len(relevant)
-    reciprocal_rank = next(
-        (1.0 / rank for rank, hit in enumerate(hits, start=1) if hit), 0.0
-    )
+    reciprocal_rank = next((1.0 / rank for rank, hit in enumerate(hits, start=1) if hit), 0.0)
     dcg = sum(hit / math.log2(rank + 1) for rank, hit in enumerate(hits, 1))
     ideal_hits = min(len(relevant), k)
     idcg = sum(1.0 / math.log2(rank + 1) for rank in range(1, ideal_hits + 1))

@@ -1,4 +1,5 @@
 """Create Nimbus's initial security-aware schema."""
+
 from alembic import op
 
 revision = "0001_initial_schema"
@@ -54,7 +55,9 @@ def upgrade() -> None:
         )
     """)
     op.execute("CREATE INDEX chunks_search_text_idx ON chunks USING gin (search_text)")
-    op.execute("CREATE INDEX chunks_embedding_idx ON chunks USING hnsw (embedding vector_cosine_ops)")
+    op.execute(
+        "CREATE INDEX chunks_embedding_idx ON chunks USING hnsw (embedding vector_cosine_ops)"
+    )
     op.execute("CREATE INDEX documents_access_idx ON documents (audience, region)")
 
     op.execute("""

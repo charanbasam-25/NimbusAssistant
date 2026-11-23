@@ -5,16 +5,13 @@ from __future__ import annotations
 import argparse
 import hashlib
 import json
-import os
 import re
 import subprocess
 from pathlib import Path
-from urllib.parse import quote
 
 import psycopg
-from dotenv import load_dotenv
+from nimbus_api.config import database_url
 from psycopg.types.json import Jsonb
-
 
 ROOT = Path(__file__).resolve().parents[1]
 MANIFEST_PATH = ROOT / "docs" / "corpus-manifest.json"
@@ -24,29 +21,10 @@ CHUNK_OVERLAP_TOKENS = 80
 PARSER_VERSION = "markdown-includes-fences-v3"
 CHUNKER_VERSION = "heading-paragraph-lexical-600-v2"
 FENCE_PATTERN = re.compile(r"(`{3,}|~{3,})")
-INCLUDE_PATTERN = re.compile(
-    r"(?m)^[ \t]*\{\*[ \t]*(?P<body>[^\r\n]*?)[ \t]*\*\}[ \t]*$"
-)
+INCLUDE_PATTERN = re.compile(r"(?m)^[ \t]*\{\*[ \t]*(?P<body>[^\r\n]*?)[ \t]*\*\}[ \t]*$")
 INCLUDE_OPTION_PATTERN = re.compile(
     r'\s*(?:hl\[[0-9,: \-]+\]|ln\[[0-9,: \-]+\]|title\["[^"\r\n]*"\])'
 )
-
-
-def database_url() -> str:
-    load_dotenv(ROOT / ".env")
-    configured_url = os.environ.get("DATABASE_URL")
-    if configured_url:
-        return configured_url.replace("postgresql+psycopg://", "postgresql://", 1)
-
-    required = ("POSTGRES_USER", "POSTGRES_PASSWORD", "POSTGRES_DB")
-    missing = [key for key in required if not os.environ.get(key)]
-    if missing:
-        raise RuntimeError(f"Missing database settings in .env: {', '.join(missing)}")
-    user = quote(os.environ["POSTGRES_USER"], safe="")
-    password = quote(os.environ["POSTGRES_PASSWORD"], safe="")
-    database = quote(os.environ["POSTGRES_DB"], safe="")
-    port = os.environ.get("POSTGRES_PORT", "5432")
-    return f"postgresql://{user}:{password}@localhost:{port}/{database}"
 
 
 def checkout_pinned_source(repository: str, commit: str, destination: Path) -> Path:
@@ -119,9 +97,7 @@ def expand_code_includes(markdown: str, docs_base: Path, source_root: Path) -> s
         while options:
             option_match = INCLUDE_OPTION_PATTERN.match(options)
             if not option_match:
-                raise RuntimeError(
-                    f"Unsupported options in code include directive: {body}"
-                )
+                raise RuntimeError(f"Unsupported options in code include directive: {body}")
             options = options[option_match.end() :].strip()
 
         candidate = (docs_base / relative_path).resolve()
@@ -134,16 +110,11 @@ def expand_code_includes(markdown: str, docs_base: Path, source_root: Path) -> s
 
         code = candidate.read_text(encoding="utf-8").rstrip("\n")
         # Use a longer Markdown fence if source code itself contains backticks.
-        longest_fence = max(
-            (len(run) for run in re.findall(r"`+", code)), default=0
-        )
+        longest_fence = max((len(run) for run in re.findall(r"`+", code)), default=0)
         fence = "`" * max(3, longest_fence + 1)
         language = candidate.suffix.removeprefix(".")
         source_label = candidate.relative_to(source_root.resolve()).as_posix()
-        return (
-            f"[Example source: {source_label}]\n"
-            f"{fence}{language}\n{code}\n{fence}"
-        )
+        return f"[Example source: {source_label}]\n{fence}{language}\n{code}\n{fence}"
 
     return INCLUDE_PATTERN.sub(replace, markdown)
 
@@ -202,6 +173,46 @@ def markdown_sections(markdown: str) -> list[tuple[str, str]]:
     return sections
 
 
+def _fence_state_at(text: str, position: int) -> tuple[str, int, str] | None:
+    """Return the active Markdown fence immediately before a character offset.
+
+    The saved opening line lets a continuation chunk reopen the same language
+    fence rather than leaving the code fragment looking like ordinary prose.
+    """
+    open_fence: tuple[str, int, str] | None = None
+    offset = 0
+    for line in text.splitlines(keepends=True):
+        content = line.rstrip("\r\n")
+        # A boundary inside a line has not reached that line's delimiter yet.
+        if offset + len(content) > position:
+            break
+
+        if open_fence is None:
+            indent = len(content) - len(content.lstrip(" "))
+            opening = FENCE_PATTERN.match(content.lstrip(" ")) if indent <= 3 else None
+            if opening:
+                delimiter = opening.group(1)
+                open_fence = (delimiter[0], len(delimiter), content)
+        else:
+            bare_fence = re.fullmatch(r"[ \t]*(`{3,}|~{3,})[ \t]*", content)
+            if bare_fence:
+                delimiter = bare_fence.group(1)
+                if delimiter[0] == open_fence[0] and len(delimiter) >= open_fence[1]:
+                    open_fence = None
+
+        offset += len(line)
+    return open_fence
+
+
+def _repair_fence_boundaries(text: str, start: int, end: int) -> str:
+    """Make a substring independently renderable if it starts/ends in code."""
+    opening = _fence_state_at(text, start)
+    closing = _fence_state_at(text, end)
+    prefix = f"{opening[2]}\n" if opening else ""
+    suffix = f"\n{closing[0] * closing[1]}" if closing else ""
+    return prefix + text[start:end] + suffix
+
+
 def split_long_text(text: str, max_tokens: int) -> list[str]:
     """Split only oversized paragraphs, enforcing a hard lexical-token cap.
 
@@ -215,6 +226,9 @@ def split_long_text(text: str, max_tokens: int) -> list[str]:
         return [text]
 
     overlap = min(CHUNK_OVERLAP_TOKENS, max_tokens - 1)
+    if max_tokens <= CHUNK_OVERLAP_TOKENS:
+        # A nearly-full-window overlap would advance only one token at a time.
+        overlap = max_tokens // 5
     chunks: list[str] = []
     start = 0
     while start < len(matches):
@@ -233,7 +247,19 @@ def split_long_text(text: str, max_tokens: int) -> list[str]:
             if line_ends:
                 end = line_ends[-1]
 
-        chunks.append(text[matches[start].start() : matches[end - 1].end()])
+        chunk_start = matches[start].start()
+        # Re-open/close code fences added for chunk isolation consume tokens
+        # too, so shorten this window until the repaired chunk still honors
+        # the same hard lexical-token cap.
+        while True:
+            chunk_end = matches[end - 1].end()
+            chunk = _repair_fence_boundaries(text, chunk_start, chunk_end)
+            if len(TOKEN_PATTERN.findall(chunk)) <= max_tokens:
+                break
+            if end - start <= 1:
+                raise ValueError("max_tokens is too small to preserve a Markdown fence")
+            end -= 1
+        chunks.append(chunk)
         if end == len(matches):
             break
 
@@ -313,40 +339,39 @@ def ingest(source_root: Path, manifest: dict) -> dict:
     loaded_documents = 0
     loaded_chunks = 0
     file_records = []
-    with psycopg.connect(database_url()) as connection:
-        with connection.transaction():
-            # Remove only explicitly excluded pages from this exact pinned snapshot.
-            for excluded_path in excluded_paths:
-                connection.execute(
-                    "DELETE FROM documents WHERE source_commit = %s AND source_path = %s",
-                    (commit, excluded_path),
-                )
+    with psycopg.connect(database_url()) as connection, connection.transaction():
+        # Remove only explicitly excluded pages from this exact pinned snapshot.
+        for excluded_path in excluded_paths:
+            connection.execute(
+                "DELETE FROM documents WHERE source_commit = %s AND source_path = %s",
+                (commit, excluded_path),
+            )
 
-            for path in selected_files:
-                source_markdown = path.read_text(encoding="utf-8")
-                content_hash = hashlib.sha256(source_markdown.encode("utf-8")).hexdigest()
-                relative_path = path.relative_to(docs_dir)
-                source_path = relative_path.as_posix()
-                title = markdown_title(source_markdown, path.stem.replace("-", " ").title())
-                markdown = expand_code_includes(
-                    source_markdown,
-                    docs_base=docs_dir.parent,
-                    source_root=source_root,
-                )
-                chunks = make_chunks(markdown)
-                if not chunks:
-                    continue
+        for path in selected_files:
+            source_markdown = path.read_text(encoding="utf-8")
+            content_hash = hashlib.sha256(source_markdown.encode("utf-8")).hexdigest()
+            relative_path = path.relative_to(docs_dir)
+            source_path = relative_path.as_posix()
+            title = markdown_title(source_markdown, path.stem.replace("-", " ").title())
+            markdown = expand_code_includes(
+                source_markdown,
+                docs_base=docs_dir.parent,
+                source_root=source_root,
+            )
+            chunks = make_chunks(markdown)
+            if not chunks:
+                continue
 
-                # The exact pinned path is the replacement boundary, making reruns idempotent.
-                connection.execute(
-                    """
+            # The exact pinned path is the replacement boundary, making reruns idempotent.
+            connection.execute(
+                """
                     DELETE FROM documents
                     WHERE source_commit = %s AND source_path = %s AND content_hash <> %s
                     """,
-                    (commit, source_path, content_hash),
-                )
-                document_id = connection.execute(
-                    """
+                (commit, source_path, content_hash),
+            )
+            document_id = connection.execute(
+                """
                     INSERT INTO documents (
                         source_url, source_commit, source_path, title, audience, region,
                         content_hash, metadata
@@ -355,38 +380,38 @@ def ingest(source_root: Path, manifest: dict) -> dict:
                     DO UPDATE SET title = EXCLUDED.title, metadata = EXCLUDED.metadata
                     RETURNING id
                     """,
-                    (
-                        source_page_url(relative_path),
-                        commit,
-                        source_path,
-                        title,
-                        manifest["default_access_tags"]["audience"],
-                        manifest["default_access_tags"]["region"],
-                        content_hash,
-                        Jsonb({"license": manifest["license"], "format": "markdown"}),
-                    ),
-                ).fetchone()[0]
+                (
+                    source_page_url(relative_path),
+                    commit,
+                    source_path,
+                    title,
+                    manifest["default_access_tags"]["audience"],
+                    manifest["default_access_tags"]["region"],
+                    content_hash,
+                    Jsonb({"license": manifest["license"], "format": "markdown"}),
+                ),
+            ).fetchone()[0]
 
-                # Chunk boundaries may change when the chunker version changes.
-                # Remove prior rows first so stale higher ordinals cannot survive
-                # a re-ingestion with fewer chunks.
-                connection.execute("DELETE FROM chunks WHERE document_id = %s", (document_id,))
+            # Chunk boundaries may change when the chunker version changes.
+            # Remove prior rows first so stale higher ordinals cannot survive
+            # a re-ingestion with fewer chunks.
+            connection.execute("DELETE FROM chunks WHERE document_id = %s", (document_id,))
 
-                for ordinal, chunk in enumerate(chunks):
-                    # Keep original text for keyword search, but give future embeddings
-                    # its title/heading context so a passage still makes sense by itself.
-                    context_parts = [title]
-                    if chunk["heading"]:
-                        context_parts.append(str(chunk["heading"]))
-                    embedding_input = " / ".join(context_parts) + ": " + str(chunk["content"])
-                    chunk_hash = "sha256:" + hashlib.sha256(
-                        str(chunk["content"]).encode("utf-8")
-                    ).hexdigest()
-                    processing = Jsonb(
-                        {"parser_version": PARSER_VERSION, "chunker_version": CHUNKER_VERSION}
-                    )
-                    connection.execute(
-                        """
+            for ordinal, chunk in enumerate(chunks):
+                # Keep original text for keyword search, but give future embeddings
+                # its title/heading context so a passage still makes sense by itself.
+                context_parts = [title]
+                if chunk["heading"]:
+                    context_parts.append(str(chunk["heading"]))
+                embedding_input = " / ".join(context_parts) + ": " + str(chunk["content"])
+                chunk_hash = (
+                    "sha256:" + hashlib.sha256(str(chunk["content"]).encode("utf-8")).hexdigest()
+                )
+                processing = Jsonb(
+                    {"parser_version": PARSER_VERSION, "chunker_version": CHUNKER_VERSION}
+                )
+                connection.execute(
+                    """
                         INSERT INTO chunks (
                             document_id, ordinal, heading, content, token_count,
                             embedding_input, content_hash, processing
@@ -400,27 +425,27 @@ def ingest(source_root: Path, manifest: dict) -> dict:
                                       content_hash = EXCLUDED.content_hash,
                                       processing = EXCLUDED.processing
                         """,
-                        (
-                            document_id,
-                            ordinal,
-                            chunk["heading"],
-                            chunk["content"],
-                            chunk["token_count"],
-                            embedding_input,
-                            chunk_hash,
-                            processing,
-                        ),
-                    )
-
-                loaded_documents += 1
-                loaded_chunks += len(chunks)
-                file_records.append(
-                    {
-                        "source_path": source_path,
-                        "content_sha256": content_hash,
-                        "chunks": len(chunks),
-                    }
+                    (
+                        document_id,
+                        ordinal,
+                        chunk["heading"],
+                        chunk["content"],
+                        chunk["token_count"],
+                        embedding_input,
+                        chunk_hash,
+                        processing,
+                    ),
                 )
+
+            loaded_documents += 1
+            loaded_chunks += len(chunks)
+            file_records.append(
+                {
+                    "source_path": source_path,
+                    "content_sha256": content_hash,
+                    "chunks": len(chunks),
+                }
+            )
 
     return {
         "corpus_name": manifest["corpus_name"],

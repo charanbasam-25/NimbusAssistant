@@ -1,16 +1,14 @@
 from logging.config import fileConfig
-import os
 
 from alembic import context
+from nimbus_api.config import database_url as get_database_url
 from sqlalchemy import engine_from_config, pool
 
 config = context.config
 if config.config_file_name is not None:
     fileConfig(config.config_file_name)
 
-database_url = os.environ.get("DATABASE_URL")
-if not database_url:
-    raise RuntimeError("DATABASE_URL must be set before running migrations")
+database_url = get_database_url().replace("postgresql://", "postgresql+psycopg://", 1)
 config.set_main_option("sqlalchemy.url", database_url.replace("%", "%%"))
 target_metadata = None
 

@@ -1,4 +1,5 @@
 """Require an explicit home region for every user."""
+
 from alembic import op
 
 revision = "0003_user_region_required"

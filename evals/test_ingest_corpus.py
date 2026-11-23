@@ -1,7 +1,6 @@
 """Regression tests for the Markdown chunker."""
 
 import pytest
-
 from ingest_corpus import (
     TOKEN_PATTERN,
     expand_code_includes,
@@ -50,6 +49,25 @@ def test_oversized_table_prefers_complete_rows_and_overlaps_context() -> None:
     assert shared_overlap >= 80
 
 
+@pytest.mark.parametrize(
+    ("opening", "fence"),
+    [("```python", "```"), ("~~~python", "~~~")],
+)
+def test_oversized_fenced_code_repairs_each_chunk_boundary(opening, fence) -> None:
+    code = "\n".join(f"value_{index} = {index}" for index in range(120))
+    text = f"Example source\n\n{opening}\n{code}\n{fence}\n\nExplanation follows."
+
+    chunks = split_long_text(text, max_tokens=70)
+
+    assert len(chunks) > 2
+    assert all(len(lexical_tokens(chunk)) <= 70 for chunk in chunks)
+    # Every retrieval chunk is now independently renderable as a fenced block.
+    assert all(chunk.count(fence) == 2 for chunk in chunks)
+    assert "value_0 = 0" in chunks[0]
+    assert "value_119 = 119" in "\n".join(chunks)
+    assert "Explanation follows." in chunks[-1]
+
+
 def test_normal_paragraph_grouping_stays_unchanged() -> None:
     markdown = "# Intro\n\nFirst short paragraph.\n\nSecond short paragraph."
 
@@ -61,7 +79,9 @@ def test_normal_paragraph_grouping_stays_unchanged() -> None:
 
 
 def test_fenced_code_keeps_hash_lines_and_blank_lines_together() -> None:
-    markdown = "# Example\n\n```Dockerfile\nRUN echo hi # (1)!\n\n# not a heading\n```\n\nAfter code."
+    markdown = (
+        "# Example\n\n```Dockerfile\nRUN echo hi # (1)!\n\n# not a heading\n```\n\nAfter code."
+    )
 
     sections = markdown_sections(markdown)
 

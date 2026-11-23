@@ -1,16 +1,9 @@
-import os
-from pathlib import Path
-from urllib.parse import quote
-
 import psycopg
-from dotenv import load_dotenv
 from fastapi import FastAPI, HTTPException
 from pydantic import BaseModel, Field
 
+from nimbus_api.config import database_url
 from nimbus_api.retrieval import search_chunks
-
-ROOT = Path(__file__).resolve().parents[4]
-load_dotenv(ROOT / ".env")
 
 app = FastAPI(
     title="Nimbus Support Assistant API",
@@ -27,23 +20,6 @@ async def liveness() -> dict[str, str]:
 class RetrievalRequest(BaseModel):
     query: str = Field(min_length=3, max_length=2000)
     limit: int = Field(default=5, ge=1, le=20)
-
-
-def database_url() -> str:
-    # Prefer a complete URL; otherwise build one from the individual Docker/.env settings.
-    configured_url = os.environ.get("DATABASE_URL")
-    if configured_url:
-        return configured_url.replace("postgresql+psycopg://", "postgresql://", 1)
-
-    required = ("POSTGRES_USER", "POSTGRES_PASSWORD", "POSTGRES_DB")
-    missing = [key for key in required if not os.environ.get(key)]
-    if missing:
-        raise RuntimeError(f"Missing database settings: {', '.join(missing)}")
-    user = quote(os.environ["POSTGRES_USER"], safe="")
-    password = quote(os.environ["POSTGRES_PASSWORD"], safe="")
-    database = quote(os.environ["POSTGRES_DB"], safe="")
-    port = os.environ.get("POSTGRES_PORT", "5432")
-    return f"postgresql://{user}:{password}@localhost:{port}/{database}"
 
 
 @app.post("/v1/retrieval/search", tags=["retrieval"])
