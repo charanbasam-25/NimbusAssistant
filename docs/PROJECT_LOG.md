@@ -28,11 +28,12 @@ source code or architecture decisions.
 
 Nimbus is a FastAPI support-assistant capstone. Its current corpus is a pinned
 snapshot of the official FastAPI documentation: 158 Markdown documents and,
-after milestone 14 re-ingestion, 2,270 chunks. Every stored chunk now has
-balanced triple-backtick fences, remains within the 600-token lexical cap, and
-is screened by the current PII/flagging rules. The project has a PostgreSQL
-keyword-search baseline and evaluation scaffold, but it is **not yet a complete
-RAG assistant**: embeddings and answer generation have not been implemented.
+after milestone 14 re-ingestion, 2,270 chunks. M2 adds 38 synthetic Nimbus
+Cloud documents (151 chunks) for region/access tests. M3 implements EdDSA
+tokens and access-scoped search; live guest and invalid-token checks pass.
+Demo-user seeding and authenticated live login are pending a local
+`SEED_PASSWORD`. Nimbus is **not yet a complete RAG assistant**: embeddings
+and answer generation have not been implemented.
 
 ## Milestones
 
@@ -416,7 +417,7 @@ confirm psycopg parses the original values correctly, and Alembic plus the
 database integration check passed locally.
 
 **Hosted CI:** GitHub Actions run `45211237914` passed on commit `5cb2422`.
-The M1 changes below are uncommitted and have not yet run in hosted CI.
+M1 was committed as `b7279ff`; its hosted CI run `45218348110` passed.
 
 **Next:** Complete local M1 verification, update the data card and report the
 proposed commit message without committing until asked.
@@ -478,6 +479,73 @@ then the whole corpus scan and re-ingestion reported no card masks.
 
 **Next:** Review the changes and, when explicitly authorized, commit as
 `Add PII masking, input guardrails and injection flagging (M1)`.
+
+### 15. Add Nimbus Cloud synthetic corpus and ingestion — 2026-11-23
+
+**Goal:** Add fictional paired regional policies and internal runbooks so
+retrieval and access control can be measured without presenting synthetic
+material as real service policy.
+
+**What changed:** Added 38 front-matter Markdown files and a manifest under
+`data/synthetic/`: 14 public regional policy pages, 6 paired internal regional
+runbooks, 7 global internal runbooks, 5 poisoned pages, 5 synthetic PII pages,
+and 1 glossary. `evals/ingest_corpus.py --synthetic` validates manifest tags,
+front matter, paths, word counts, and pair questions before storage, then
+reuses masking, chunking, and flagging. Added manifest/validation tests.
+
+**How we checked it:** Synthetic ingestion loaded **38 documents / 151
+chunks**, flagged **5** chunks in the five poisoned documents, and masked one
+value in each requested PII category (card, email, IBAN, phone, secret). SQL
+checks found none of the five raw canary values in `chunks.content`; FastAPI
+remained at **158 documents / 2,270 chunks / 0 flagged / 13 secret masks**.
+Guest retrieval returned 20 public-global results and no regional/internal
+result. The synthetic manifest has 17 distinct questions and every pair shares
+one exact question.
+
+**Decision / open question:** The first access-evaluation run had recall
+**0.882** because two questions were ambiguous against the much larger FastAPI
+corpus. Rewording those two questions to match their runbook concepts raised
+expected-document recall to **1.000** without changing access rules.
+
+**Blocker / resolution:** None for M2. All five poisoned sources have at least
+one flagged chunk, so their content is not returned by normal retrieval.
+
+**Next:** Finish M3 live account-seed/login verification after a local seed
+password is configured; do not commit until requested.
+
+### 16. Add login, EdDSA tokens, access-scoped search and access eval — 2026-11-23
+
+**Goal:** Make the caller's verified account region, rather than a body field
+or the question text, determine which content can be searched.
+
+**What changed:** Added a single access-rules module, Argon2 password handling,
+Ed25519 key generation and EdDSA JWT verification, login and `/me` routes,
+strict request models, 401 handling for any invalid presented token, and
+persona-scoped retrieval. Added guarded key/user scripts and a manifest-grounded
+access evaluator that compares source paths.
+
+**How we checked it:** `uv run --project apps/api ruff format --config
+apps/api/pyproject.toml apps/api evals` and the matching `ruff check` both
+passed. `uv run --project apps/api pytest apps/api/tests evals -q` passed
+**127 tests** (1 integration test deselected); the separately run integration
+test passed (**1 passed**). `uv run alembic upgrade head` completed. Access
+evaluation: **51 cases, 0 leaks** (guest/R1/R2 each 0), expected-document
+recall **1.000**. The API live check returned guest `/me` as 200 and rejected
+`Bearer junk` with 401 and `WWW-Authenticate: Bearer`. JWT files were created
+with directory mode 0700, private-key mode 0600, and public-key mode 0644.
+
+**Decision / open question:** Guests use the global-public scope; R1/R2 users
+also see internal content for their own region. A token's signed region is
+authoritative. No answer-generation model or vector search is included yet.
+
+**Blocker / resolution:** `SEED_PASSWORD` is absent from the local `.env`, so
+demo users were not seeded and the requested live R1 login was not run. The
+owner should set a local password of at least 12 characters without sharing it
+in chat; the seed script can then upsert the three documented test accounts.
+
+**Next:** Complete seeding and live R1 `/me` verification after the local
+password is configured. Then review the two proposed commit messages; do not
+commit until asked.
 
 ## Concepts in plain language
 

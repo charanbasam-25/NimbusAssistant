@@ -5,6 +5,7 @@ from __future__ import annotations
 import base64
 import ipaddress
 import re
+import unicodedata
 from dataclasses import dataclass
 from urllib.parse import urlsplit
 
@@ -38,6 +39,12 @@ METADATA_HOSTS = {
     "100.100.100.200",
     "fd00:ec2::254",
 }
+ZERO_WIDTH = str.maketrans("", "", "\u200b\u200c\u200d\ufeff")
+
+
+def _normalize_text(text: str) -> str:
+    """Canonicalize compatibility characters and hide no zero-width controls."""
+    return unicodedata.normalize("NFKC", text).translate(ZERO_WIDTH)
 
 
 @dataclass(frozen=True)
@@ -47,11 +54,13 @@ class GuardrailResult:
 
 
 def looks_like_injection(text: str) -> bool:
+    text = _normalize_text(text)
     if any(pattern.search(text) for pattern in INJECTION_PATTERNS):
         return True
     for match in BASE64_RUN.finditer(text):
         try:
-            decoded = base64.b64decode(match.group(0), validate=True)
+            token = match.group(0)
+            decoded = base64.b64decode(token + "=" * (-len(token) % 4), validate=True)
         except (ValueError, base64.binascii.Error):
             continue
         if (
@@ -81,6 +90,7 @@ def _is_link_local_host(host: str) -> bool:
 
 
 def has_unsafe_url(text: str) -> bool:
+    text = _normalize_text(text)
     if UNSAFE_SCHEME.search(text):
         return True
     for match in HTTP_URL.finditer(text):
@@ -103,6 +113,7 @@ def should_flag_chunk(text: str) -> bool:
 
 def check_input(text: str) -> GuardrailResult:
     """Reject suspicious user inputs, returning the first matching reason."""
+    text = _normalize_text(text)
     if not text.strip():
         return GuardrailResult(False, "empty")
     if len(text) > MAX_INPUT_CHARS:

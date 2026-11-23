@@ -4,16 +4,9 @@ from typing import Any, Literal
 
 import psycopg
 
-Persona = Literal["guest", "R1", "R2"]
-QueryMode = Literal["and", "or"]
+from nimbus_api.access import PERSONA_ACCESS, Persona
 
-# Each persona is allowed to search only documents with matching access tags.
-# The API currently always uses "guest" until Nimbus has authenticated users.
-PERSONA_ACCESS: dict[Persona, tuple[list[str], list[str]]] = {
-    "guest": (["public"], ["global"]),
-    "R1": (["public", "internal"], ["global", "R1"]),
-    "R2": (["public", "internal"], ["global", "R2"]),
-}
+QueryMode = Literal["and", "or"]
 
 
 def search_chunks(

@@ -17,10 +17,12 @@ Nimbus is a FastAPI RAG support-assistant capstone. The current source is a
 pinned snapshot of official FastAPI documentation, and the implementation has
 a PostgreSQL keyword-search baseline, retrieval evaluation harness, ingestion
 PII masking, input guardrails, and flagged-chunk filtering. It is not yet a
-full RAG assistant: no embeddings, vector retrieval, authentication,
-answer-generating LLM, or access-controlled regional corpus are implemented.
-The last committed change is `5cb2422` (`Repair chunk fences and establish
-CI`); M1 changes are currently uncommitted.
+full RAG assistant: embeddings, vector retrieval, and answer generation are
+not implemented. M2 synthetic pages and M3 authentication/access-scoped search
+are implemented. Demo-user seeding and authenticated live login remain pending
+local `SEED_PASSWORD` configuration.
+The last committed change is `b7279ff` (`Add PII masking, input guardrails
+and injection flagging (M1)`).
 
 ## Start here (Step 3)
 
@@ -44,8 +46,7 @@ continuation reopens a fence. Local M0 checks passed, and hosted CI run
   filter stale-commit documents after re-pinning; trim internal fields from
   search responses; bind Compose ports to `127.0.0.1`; write an ADR for
   one-transaction ingestion.
-- **Hosted CI:** run `45211237914` passed on `5cb2422`; subsequent M1 changes
-  have not yet been committed or checked by hosted CI.
+- **Hosted CI:** run `45218348110` passed on `b7279ff`.
 
 ## Session log
 
@@ -109,5 +110,38 @@ continuation reopens a fence. Local M0 checks passed, and hosted CI run
   **0.626**, MRR **0.589**, code hit@5 **4/9**; OR Recall@5 **0.667**, nDCG@5
   **0.488**, MRR **0.430**, code hit@5 **3/9**.
 - Final local Ruff and pytest commands/results are recorded in milestone 14
-  of `PROJECT_LOG.md`. M1 changes remain uncommitted; propose, but do not run,
-  commit message: `Add PII masking, input guardrails and injection flagging (M1)`.
+  of `PROJECT_LOG.md`. M1 was committed as `b7279ff`.
+
+### 2026-11-23 - start M2/M3
+
+- Verified previous-push CI run `45218348110`: **passed** for commit
+  `b7279ff`. This is the first check in the M2/M3 continuation.
+- Read this handoff, the project-log rules, and
+  `docs/specs/nimbus-cloud-synthetic.md` before starting implementation.
+
+### 2026-11-23 - M2/M3 implementation and verification
+
+- Added 38 synthetic Nimbus Cloud Markdown documents and a validating
+  manifest-driven ingestion mode. Database ingestion loaded 38 documents / 151
+  chunks, flagged 5 poison chunks, and masked one synthetic value for each of
+  card, email, IBAN, phone, and secret. No raw canary value remained in chunk
+  content. FastAPI docs re-ingestion remained at 158 documents / 2,270 chunks,
+  0 flags, and 13 secret masks.
+- Added EdDSA authentication, Argon2 password utilities, access-scoped search,
+  key generation, user seeding, and source-path access evaluation. Evaluation
+  reports 51 cases, 0 leaks, and 1.000 expected-document recall. Two low-recall
+  questions were made more specific after an initial 0.882 recall result.
+- Added guardrail normalization for zero-width characters/base64 padding and
+  set the query limit to 1,000 characters. Created local JWT keys with
+  directory/private/public modes 0700/0600/0644. These keys are ignored by Git.
+- `uv run alembic upgrade head` completed. Ruff format/check passed. The
+  non-integration suite passed **127 tests** (1 integration test deselected);
+  the separate marked PostgreSQL/pgvector test passed (**1 passed**). Live
+  `GET /me` as guest returned 200; `Bearer junk` returned 401 with a bearer
+  challenge. Guest search returned no regional or internal documents.
+- Demo users were not seeded because local `.env` has no `SEED_PASSWORD`.
+  Authenticated live R1 login remains pending the owner setting a local value
+  of at least 12 characters. Do not request or record that value in chat.
+- No commit was made. Proposed commits (do not run until explicitly asked):
+  `Add Nimbus Cloud synthetic corpus and ingestion (M2)` and
+  `Add login, EdDSA tokens, access-scoped search and access eval (M3)`.
