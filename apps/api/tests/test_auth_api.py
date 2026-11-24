@@ -249,6 +249,19 @@ def test_unreadable_jwt_key_files_return_configuration_503(client, monkeypatch, 
     assert response.json() == {"detail": "Authentication is not configured"}
 
 
+def test_non_ascii_jwt_key_file_returns_configuration_503(client, monkeypatch) -> None:
+    test_client, _, _ = client
+
+    def invalid_encoding_settings():
+        raise UnicodeDecodeError("utf-8", b"\xff", 0, 1, "invalid start byte")
+
+    monkeypatch.setattr(main, "get_token_settings", invalid_encoding_settings)
+    response = test_client.get("/me", headers={"Authorization": "Bearer otherwise-valid-shape"})
+
+    assert response.status_code == 503
+    assert response.json() == {"detail": "Authentication is not configured"}
+
+
 def test_token_settings_are_cached_and_cache_is_clearable(monkeypatch) -> None:
     original_settings_loader = main.get_token_settings
     original_settings_loader.cache_clear()

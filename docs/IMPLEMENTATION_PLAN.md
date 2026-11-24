@@ -52,15 +52,16 @@ minimal Ollama v0 and error-code its failures, then proceed through embeddings,
 hybrid retrieval, and judge calibration. Later benchmark and monitoring work
 continues to feed errors back into the golden and synthetic sets.
 
-Relative to the original **32–40 h** four-week budget, the evaluation plan
-added about **8 Core hours**. The Ticket Agent and harness add another ~8 h
-(M4b harness +3, M9 +1, M10 +1, M12 +3), for an estimated **48–56 Core hours**
-overall—about **8–16 h above** the original budget. Keep the v0, first error
-coding, judge calibration, and ticket safety constraints in Core because they
-define the method and protect user data. If schedule is tight, move synthetic
-expansion beyond the first 40 tuples and automation of weekly sampling to
-**Should have**; do not remove the initial 40 failure-weighted tuples or the
-first human-reviewed weekly sample.
+The existing Core estimate for the planned implementation is **40–48 h**.
+The evaluation, agent, and harness additions contribute about **16 h** total:
+the evaluation process adds ~8 h, and the Ticket Agent/harness adds ~8 h (M4b
+harness +3, M9 +1, M10 +1, M12 +3). That makes the corrected estimate
+**56–64 Core hours**—about **16–24 h above** the original **32–40 h** four-week
+budget. Keep v0, first error coding, judge calibration, and ticket safety
+constraints in Core because they define the method and protect user data. If
+schedule is tight, move synthetic expansion beyond the first 40 tuples and
+automation of weekly sampling to **Should have**; do not remove the initial 40
+failure-weighted tuples or the first human-reviewed weekly sample.
 
 **Should have:** run the complete regression suites as a CI gate after the
 harness is implemented. Capability suites remain an iterative quality hill;

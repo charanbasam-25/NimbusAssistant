@@ -556,7 +556,7 @@ bad tokens as 401, and cached settings with explicit cache clearing.
 The first seed attempt exited 2 because the local `SEED_PASSWORD` was missing
 or shorter than 12 characters. After the owner configured a valid value
 locally, `uv run --project apps/api python scripts/seed_users.py` seeded or
-updated three accounts. Live API checks returned login **200**, `/me` **200`
+updated three accounts. Live API checks returned login **200**, `/me` **200**
 with persona **R1**, and wrong-password login **401**. The password was never
 displayed or recorded.
 
@@ -660,11 +660,12 @@ verified the plan updates and transcript ignore, and found no transcript files.
 passed, and pytest reported **145 passed, 1 deselected**.
 
 **Decision / open question:** The ticket catalog and harness are specifications
-only; implementation remains in M4b/M7/M9/M10/M12. The adjusted Core estimate
-is **48–56 hours**, approximately **8–16 hours above** the original 32–40-hour
-budget. Preserve the prior cut line: keep v0/error coding/calibration Core;
-move expansion beyond 40 synthetic tuples and automated weekly sampling to
-Should have.
+only; implementation remains in M4b/M7/M9/M10/M12. Starting from the existing
+**40–48-hour Core estimate**, the ~16 hours of evaluation, agent, and harness
+work gives **56–64 Core hours**, approximately **16–24 hours above** the
+original 32–40-hour budget. Preserve the prior cut line: keep
+v0/error coding/calibration Core; move expansion beyond 40 synthetic tuples
+and automated weekly sampling to Should have.
 
 **Blocker / resolution:** None for this documentation/configuration change.
 

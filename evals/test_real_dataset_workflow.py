@@ -1,6 +1,7 @@
 """Tests for gated real-label export and dataset validation."""
 
 import json
+import re
 import sys
 from pathlib import Path
 
@@ -62,13 +63,17 @@ def test_builder_rejects_confirmed_candidate_with_no_label_json(tmp_path) -> Non
         confirmed_records([batch])
 
 
-def test_prepared_batch_has_25_unconfirmed_rows() -> None:
+def test_prepared_batch_has_25_parseable_candidate_labels() -> None:
     batch = Path(__file__).resolve().parent / "labeling" / "batch-01.md"
-    answerable, unanswerable = confirmed_records([batch])
+    content = batch.read_text(encoding="utf-8")
+    sections = re.findall(r"(?ms)^### Candidate\b.*?(?=^### Candidate\b|\Z)", content)
 
-    assert answerable == []
-    assert unanswerable == []
-    assert batch.read_text(encoding="utf-8").count("- [ ] Confirmed") == 25
+    assert len(sections) == 25
+    for section in sections:
+        blocks = re.findall(r"```json\s*(.*?)\s*```", section, flags=re.DOTALL)
+        assert len(blocks) == 1
+        label = json.loads(blocks[0])
+        assert {"source_id", "source_url", "query", "answerable"} <= label.keys()
 
 
 def test_dataset_validator_checks_paths_pii_and_overlap(tmp_path) -> None:

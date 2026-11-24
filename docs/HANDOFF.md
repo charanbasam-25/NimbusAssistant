@@ -20,8 +20,9 @@ PII masking, input guardrails, and flagged-chunk filtering. It is not yet a
 full RAG assistant: embeddings, vector retrieval, and answer generation are
 not implemented. M2 synthetic pages and M3 authentication/access-scoped search
 are implemented. The three local demo users are seeded, and live R1 login was
-verified on 2026-11-24. The last committed change is `e2ed82a`
-(`Add login, EdDSA tokens, access-scoped search and access eval (M3)`).
+verified on 2026-11-24. Recent commits are `853f21a` (auth/synthetic corpus),
+`ee626f5` (real-question workflow), and `8408bb2` (Ticket Agent/eval harness
+specifications). Hosted CI run 4 passed; the current commit is `8408bb2`.
 
 ## Start here (Step 3)
 
@@ -225,9 +226,11 @@ continuation reopens a fence. Local M0 checks passed, and hosted CI run
 - Updated `docs/IMPLEMENTATION_PLAN.md`: M4b harness core (+3 h), M7 answers
   suite, M9 Ticket Agent and ticket-column migration, M10 form UI, M12 a
   simulated-user suite of about 30 balanced tasks (3 trials, pass@1/pass^3,
-  +3 h), plus M9/M10 effort and the CI regression-suite gate. Core estimate is
-  now 48–56 h, about 8–16 h over the original 32–40 h budget. Preserved the
-  cut line: v0/error coding/calibration stay Core; expansion beyond 40 tuples
+  +3 h), plus M9/M10 effort and the CI regression-suite gate. Corrected the
+  estimate to 56–64 Core hours (the existing 40–48 h Core estimate plus ~16 h
+  of eval/agent/harness work), about 16–24 h over the original 32–40 h budget.
+  Preserved the cut line: v0/error coding/calibration stay Core; expansion
+  beyond 40 tuples
   and automated weekly sampling move to Should have.
 - PyYAML validation found six unique topic IDs, no topic with more than two
   fields, and only `text`/`textarea`/`select` types. Structural checks found
@@ -242,3 +245,21 @@ continuation reopens a fence. Local M0 checks passed, and hosted CI run
 - Harness reports are specified to include pass@1/pass^k, partial-credit mean,
   p50/p95 latency, token usage, and estimated cost for every suite; one-trial
   deterministic suites report pass@1 and pass^1.
+
+### 2026-11-24 - Small fixes after 8408bb2
+
+- Updated the batch-01 workflow test to validate 25 candidate sections and
+  exactly one parseable JSON label block per candidate, without asserting
+  anything about confirmation ticks.
+- `current_claims` now maps `ValueError` (including `UnicodeDecodeError`) from
+  token-settings loading to the same 503 configuration response as `OSError`;
+  added a Unicode decoding regression test.
+- Recorded commits `853f21a`, `ee626f5`, and `8408bb2`, and hosted CI run 4
+  passing, with current commit `8408bb2`. Fixed the milestone 16 Markdown
+  emphasis typo and corrected the Core estimate to 56–64 hours (40–48 h
+  existing estimate plus ~16 h additions), 16–24 h above the 32–40 h budget.
+- Checks run: Ruff format reported **39 files left unchanged**; Ruff check
+  passed; `uv run --project apps/api pytest apps/api/tests evals -q` passed
+  (**146 passed, 1 deselected**).
+- No commit made. Proposed commit: `Fix batch test, auth key errors and plan
+  hours`.

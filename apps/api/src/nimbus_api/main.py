@@ -73,7 +73,7 @@ def current_claims(
         raise _unauthorized()
     try:
         settings = get_token_settings()
-    except OSError as error:
+    except (OSError, ValueError) as error:
         raise _authentication_not_configured() from error
     try:
         return verify_token(settings, token.strip())
