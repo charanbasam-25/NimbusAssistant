@@ -1,0 +1,31 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://nimbus.local/schemas/unanswerable-real-question.schema.json",
+  "title": "Nimbus unanswerable real evaluation question",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "id",
+    "query",
+    "persona",
+    "slice",
+    "provenance",
+    "source_url",
+    "license",
+    "label_status",
+    "notes",
+    "reason"
+  ],
+  "properties": {
+    "id": {"type": "string", "minLength": 1},
+    "query": {"type": "string", "minLength": 3, "maxLength": 300},
+    "persona": {"enum": ["guest", "R1", "R2"]},
+    "slice": {"enum": ["general", "short_query"]},
+    "provenance": {"enum": ["real", "synthetic"]},
+    "source_url": {"type": "string", "format": "uri"},
+    "license": {"type": "string", "minLength": 1},
+    "label_status": {"enum": ["confirmed"]},
+    "notes": {"type": "string"},
+    "reason": {"const": "not covered by pinned docs"}
+  }
+}

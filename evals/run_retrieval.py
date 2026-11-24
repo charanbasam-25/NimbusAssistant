@@ -42,7 +42,15 @@ def load_questions(path: Path) -> list[dict[str, Any]]:
         missing = required - item.keys()
         if missing:
             raise ValueError(f"{path}:{line_number}: missing fields: {sorted(missing)}")
-        unknown = item.keys() - required - {"notes", "expected_code_sources"}
+        optional = {
+            "notes",
+            "expected_code_sources",
+            "source_url",
+            "license",
+            "label_status",
+            "reason",
+        }
+        unknown = item.keys() - required - optional
         if unknown:
             raise ValueError(f"{path}:{line_number}: unknown fields: {sorted(unknown)}")
         if not isinstance(item["id"], str) or not item["id"].strip():
@@ -58,6 +66,18 @@ def load_questions(path: Path) -> list[dict[str, Any]]:
             "synthetic",
         }:
             raise ValueError(f"{path}:{line_number}: provenance must be real or synthetic")
+        if item["provenance"] == "real":
+            missing_real = {"source_url", "license", "label_status"} - item.keys()
+            if missing_real:
+                raise ValueError(
+                    f"{path}:{line_number}: real questions need fields: {sorted(missing_real)}"
+                )
+            if item["label_status"] != "confirmed":
+                raise ValueError(
+                    f"{path}:{line_number}: real question label_status must be confirmed"
+                )
+        if "reason" in item and not isinstance(item["reason"], str):
+            raise ValueError(f"{path}:{line_number}: reason must be a string")
         if not isinstance(item["relevant_source_paths"], list) or not item["relevant_source_paths"]:
             raise ValueError(f"{path}:{line_number}: relevant_source_paths must be non-empty")
         if not all(

@@ -154,3 +154,46 @@ The real-question suite is not populated yet. Collect real FastAPI support
 questions and their authoritative source pages before reporting capstone quality
 results. Synthetic records can validate mechanics but must be reported
 separately.
+
+## Real-question collection and labeling (M4)
+
+Collect candidate questions from Stack Overflow's public API (no key is
+required for low-volume use). The collector saves raw API pages and excerpts
+under Git-ignored `data/raw/questions/`, then writes a deterministic candidate
+list:
+
+```bash
+uv run --project apps/api python evals/collect_questions.py --pages 2
+```
+
+GitHub Discussions is an optional source; it is skipped when `GH_TOKEN` is
+absent. Collected rows are candidates, **not evaluation labels**. Review them
+in `evals/labeling/batch-NN.md`: edit the proposed label JSON, check relevant
+paths against the pinned docs, and tick `- [x] Confirmed` only after owner
+review. The dataset builder ignores unticked rows:
+
+```bash
+uv run --project apps/api python scripts/build_real_dataset.py \
+  evals/labeling/batch-01.md
+uv run --project apps/api python evals/validate_real_datasets.py
+```
+
+The validator checks unique/non-overlapping IDs, source paths against the
+ingestion report, provenance fields, query length, and PII. Unanswerable
+questions are stored separately for the later abstention suite. Do not run
+real baselines until owner-confirmed answerable labels exist. Then run AND and
+OR separately and retain distinct `provenance:real` and
+`provenance:synthetic` summaries:
+
+```bash
+uv run --project apps/api python evals/run_retrieval.py \
+  --dataset evals/datasets/retrieval_real.jsonl --query-mode and \
+  --output evals/reports/keyword-baseline-real-and.json
+uv run --project apps/api python evals/run_retrieval.py \
+  --dataset evals/datasets/retrieval_real.jsonl --query-mode or \
+  --output evals/reports/keyword-baseline-real-or.json
+```
+
+See [ADR 002](../docs/adr/002-real-evaluation-paraphrases.md) for why the
+committed records use paraphrases plus attribution links rather than raw post
+text.

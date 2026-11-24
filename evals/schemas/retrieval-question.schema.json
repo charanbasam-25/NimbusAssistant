@@ -19,7 +19,8 @@
     },
     "query": {
       "type": "string",
-      "minLength": 3
+      "minLength": 3,
+      "maxLength": 300
     },
     "relevant_source_paths": {
       "type": "array",
@@ -50,6 +51,26 @@
     },
     "notes": {
       "type": "string"
+    },
+    "source_url": {
+      "type": "string",
+      "format": "uri"
+    },
+    "license": {
+      "type": "string",
+      "minLength": 1
+    },
+    "label_status": {
+      "enum": ["confirmed"]
+    },
+    "reason": {
+      "type": "string"
     }
-  }
+  },
+  "allOf": [
+    {
+      "if": {"properties": {"provenance": {"const": "real"}}},
+      "then": {"required": ["source_url", "license", "label_status"]}
+    }
+  ]
 }
