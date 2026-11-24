@@ -15,5 +15,7 @@ htmlcov/
 dist/
 data/raw/
 data/processed/
+evals/traces/
+evals/transcripts/
 prometheus-data/
 grafana-data/

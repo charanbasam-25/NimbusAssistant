@@ -29,10 +29,10 @@ source code or architecture decisions.
 Nimbus is a FastAPI support-assistant capstone. Its current corpus is a pinned
 snapshot of the official FastAPI documentation: 158 Markdown documents and,
 after milestone 14 re-ingestion, 2,270 chunks. M2 adds 38 synthetic Nimbus
-Cloud documents (151 chunks) for region/access tests. M3 implements EdDSA
+Cloud documents (153 chunks) for region/access tests. M3 implements EdDSA
 tokens and access-scoped search; live guest and invalid-token checks pass.
-Demo-user seeding and authenticated live login are pending a local
-`SEED_PASSWORD`. Nimbus is **not yet a complete RAG assistant**: embeddings
+The three demo users are seeded, and live R1 login was verified on 2026-11-24.
+Nimbus is **not yet a complete RAG assistant**: embeddings
 and answer generation have not been implemented.
 
 ## Milestones
@@ -493,9 +493,10 @@ and 1 glossary. `evals/ingest_corpus.py --synthetic` validates manifest tags,
 front matter, paths, word counts, and pair questions before storage, then
 reuses masking, chunking, and flagging. Added manifest/validation tests.
 
-**How we checked it:** Synthetic ingestion loaded **38 documents / 151
-chunks**, flagged **5** chunks in the five poisoned documents, and masked one
-value in each requested PII category (card, email, IBAN, phone, secret). SQL
+**How we checked it:** Synthetic ingestion loaded **38 documents / 153
+chunks** after the realistic-body revision, flagged **5** chunks in the five
+poisoned documents, and masked one value in each requested PII category
+(card, email, IBAN, phone, secret). SQL
 checks found none of the five raw canary values in `chunks.content`; FastAPI
 remained at **158 documents / 2,270 chunks / 0 flagged / 13 secret masks**.
 Guest retrieval returned 20 public-global results and no regional/internal
@@ -534,18 +535,142 @@ recall **1.000**. The API live check returned guest `/me` as 200 and rejected
 `Bearer junk` with 401 and `WWW-Authenticate: Bearer`. JWT files were created
 with directory mode 0700, private-key mode 0600, and public-key mode 0644.
 
+**Hosted CI:** GitHub Actions run number 3 (`45228066997`) passed for commit
+`e2ed82a` (M3).
+
+**2026-11-24 follow-ups:** All 38 synthetic bodies were rewritten as
+topic-specific hosting documentation with their payloads, front matter,
+manifest values, and final disclaimer preserved. The validator rejects bodies
+containing `canary` or `retrieval exercise`; the pair test now verifies that
+regional files differ on exactly one fact line. Synthetic re-ingestion loaded
+38 documents / 153 chunks, flagged 5 poisoned chunks, and masked one synthetic
+value in each PII category. The access evaluation again reported 51 cases, 0
+leaks, and 1.000 expected-document recall.
+
+Migration `0005_users_email_lower_unique` adds a unique index on
+`lower(users.email)` and fails with a remediation message if case-normalized
+duplicates exist. The database was upgraded to this head, and the integration
+test verifies the index. Auth tests cover missing/unreadable key files as 503,
+bad tokens as 401, and cached settings with explicit cache clearing.
+
+The first seed attempt exited 2 because the local `SEED_PASSWORD` was missing
+or shorter than 12 characters. After the owner configured a valid value
+locally, `uv run --project apps/api python scripts/seed_users.py` seeded or
+updated three accounts. Live API checks returned login **200**, `/me` **200`
+with persona **R1**, and wrong-password login **401**. The password was never
+displayed or recorded.
+
 **Decision / open question:** Guests use the global-public scope; R1/R2 users
 also see internal content for their own region. A token's signed region is
 authoritative. No answer-generation model or vector search is included yet.
 
-**Blocker / resolution:** `SEED_PASSWORD` is absent from the local `.env`, so
-demo users were not seeded and the requested live R1 login was not run. The
-owner should set a local password of at least 12 characters without sharing it
-in chat; the seed script can then upsert the three documented test accounts.
+**Blocker / resolution:** The initial seed attempt was blocked by the missing
+or too-short local `SEED_PASSWORD`. The owner configured a qualifying value
+locally; the seed script then upserted all three demo users. Live R1 login,
+`/me`, and wrong-password behavior were verified as 200/R1/401. No credential
+was exposed in output or documentation. No blocker remains for Part A.
 
-**Next:** Complete seeding and live R1 `/me` verification after the local
-password is configured. Then review the two proposed commit messages; do not
-commit until asked.
+**Next:** Part A is verified. Review its uncommitted changes before starting
+Part B (M4); do not commit until asked.
+
+### 17. Start real-question evaluation data collection (M4) — 2026-11-24
+
+**Goal:** Build a reproducible, separately reported retrieval evaluation set
+from real FastAPI questions without committing raw third-party post text or
+inventing owner labels.
+
+**What changed:** Added `evals/collect_questions.py`, offline fixture tests,
+owner-confirmed Markdown batch format, a gated `scripts/build_real_dataset.py`,
+dataset validation, real-question schema fields, and evaluation instructions.
+Added ADR 002 explaining paraphrases and source attribution. Prepared the first
+25 review proposals in `evals/labeling/batch-01.md`.
+
+**How we checked it:** The Stack Exchange API collector fetched and cached two
+pages under ignored `data/raw/questions/`, and produced **189 candidates** on
+2026-11-24. The offline collector/workflow tests passed (**16 passed** in the
+targeted run). GitHub Discussions was not queried because `GH_TOKEN` was not
+available. Raw responses and candidate excerpts are ignored and were not
+staged. No real or unanswerable dataset rows have been exported.
+
+**Decision / open question:** Candidate labels are proposals only. The owner
+must check every paraphrase, answerability decision, and relevant pinned page,
+then tick each row. The builder ignores unticked candidates. Real AND/OR
+baselines, short-query results, and the M4 target counts remain pending those
+human confirmations; no retrieval score is claimed for real questions.
+
+**Blocker / resolution:** Human confirmation is an intentional quality gate,
+not a software failure. The first 25 candidates are ready for review. This
+session stops here so labels are not inferred on the owner's behalf.
+
+**Next:** Review `evals/labeling/batch-01.md`, edit the proposed JSON labels,
+and tick only confirmed rows. Continue with subsequent batches after the first
+batch is reviewed. Do not commit until asked.
+
+### 18. Adopt the seven-step evaluation process (docs only) — 2026-11-24
+
+**Goal:** Make Nimbus evaluation a documented feedback loop with human-verified
+data, calibrated judging, reproducible comparisons, and trace privacy.
+
+**What changed:** Added `docs/EVAL_PROCESS.md` with purpose, artifacts, and exit
+criteria for each of seven steps. Updated `docs/IMPLEMENTATION_PLAN.md` with
+M4b, M4 key facts, judge calibration, V2 benchmark/error coding, M11 monitoring,
+M12 final evaluation, the Week 2 sequence, and the ~8-hour Core increase. Added
+error-analysis and synthetic-dimension templates, ignored `evals/traces/`, and
+linked the process from the data card. No evaluation code or datasets changed.
+
+**How we checked it:** A structural check confirmed all seven sections have
+purpose/artifacts/exit criteria, every template exists, `evals/traces/` is
+ignored, and there are no trace files. `git diff --check` passed. The required
+commands returned:
+
+- `uv run --project apps/api ruff format --config apps/api/pyproject.toml apps/api evals` — **39 files left unchanged**.
+- `uv run --project apps/api ruff check --config apps/api/pyproject.toml apps/api evals` — **all checks passed**.
+- `uv run --project apps/api pytest apps/api/tests evals -q` — **145 passed, 1 deselected**.
+
+**Decision / open question:** Keep v0, first error coding, and judge calibration
+in Core. If time is short, move expansion beyond 40 synthetic tuples and
+automated weekly sampling to Should have. The requested commit is only
+proposed; no commit was made.
+
+**Blocker / resolution:** None for this docs-only change. M4 labels remain
+owner-confirmation-gated as recorded in milestone 17.
+
+**Next:** Implement milestones in the new plan; begin with owner review of M4
+labels, then M4b v0 and immediate error coding.
+
+### 19. Ticket Agent spec + harness plan (docs only) — 2026-11-24
+
+**Goal:** Specify a safe, catalog-driven ticket handoff and extend the planned
+evaluation harness to test stateful agents, not just retrieval outputs.
+
+**What changed:** Added `docs/specs/ticket-agent.md` (A1–A5) and the six-topic
+`data/tickets/topics.yaml` catalog. Added the Harness section (B1–B11) to
+`docs/EVAL_PROCESS.md`, including task/trial terms, regression/capability
+suites, graders, grader self-tests, simulated-user behavior, isolation, report
+fields, and a YAML task template. Updated the plan for M4b harness core, M7
+answers suite, M9 schema/tools, M10 form UI, M12 agent evaluation, and the
+budget trade-off; ignored `evals/transcripts/`. This change is docs/config only;
+no harness or Ticket Agent code was implemented.
+
+**How we checked it:** PyYAML parsed the catalog; six topic IDs are unique,
+every topic has at most two fields, and all catalog field types are among
+`text`, `textarea`, and `select`. Structural checks found A1–A5 and B1–B11,
+verified the plan updates and transcript ignore, and found no transcript files.
+`git diff --check` passed. Ruff format left **39 files unchanged**, Ruff check
+passed, and pytest reported **145 passed, 1 deselected**.
+
+**Decision / open question:** The ticket catalog and harness are specifications
+only; implementation remains in M4b/M7/M9/M10/M12. The adjusted Core estimate
+is **48–56 hours**, approximately **8–16 hours above** the original 32–40-hour
+budget. Preserve the prior cut line: keep v0/error coding/calibration Core;
+move expansion beyond 40 synthetic tuples and automated weekly sampling to
+Should have.
+
+**Blocker / resolution:** None for this documentation/configuration change.
+
+**Next:** Implement the plan in milestone order, starting with owner-confirmed
+M4 labels and M4b v0/harness. No commit was made. Proposed commit:
+`Add Ticket Agent spec, topic catalog and eval harness plan`.
 
 ## Concepts in plain language
 

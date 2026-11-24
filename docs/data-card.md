@@ -27,9 +27,12 @@ test access isolation. Every fixture is clearly marked synthetic.
   and `global`, `R1`, or `R2` region tags: 14 public regional policy pages, 6
   paired internal regional runbooks, 7 internal global runbooks, 5 poisoned
   fixtures, 5 PII canaries, and 1 glossary.
-- **Planned (M4):** a separately labeled set of real support questions with
-  source links and license/provenance notes. Questions are evaluation data and
-  are not indexed as answer-bearing corpus documents.
+- **M4 collection in progress:** 189 filtered Stack Overflow question
+  candidates were collected on 2026-11-24 (CC BY-SA 4.0). Candidates are in
+  ignored `data/raw/questions/`; no owner-confirmed real labels have yet been
+  exported. Confirmed evaluation questions will be paraphrased, linked to their
+  source, and kept out of the indexed corpus. See
+  [ADR 002](adr/002-real-evaluation-paraphrases.md).
 
 ## Synthetic layer
 
@@ -37,18 +40,23 @@ The synthetic Nimbus Cloud corpus models a fictional service for hosting
 FastAPI applications. Open documentation corpora do not provide matched
 regional variants with controlled differences. Paired canary facts make it
 possible to measure whether a user can retrieve the other region's information.
-The 38 documents loaded to PostgreSQL created 151 chunks. Five poisoned pages
+The 38 documents loaded to PostgreSQL created 153 chunks. Five poisoned pages
 have flagged chunks and are excluded from normal retrieval. Synthetic pages
 are labeled fictional and not real policy; they are never presented as real
 FastAPI or Nimbus policy.
 
 ## Evaluation data
 
-The current retrieval starter set contains synthetic questions and is not
-indexed. Paraphrased questions remain evaluation examples only; they are not
-added to the source corpus. **Planned (M4):** add approximately 100 real
-FastAPI support questions with authoritative source links and recorded
-provenance/licensing, and report their scores separately from synthetic data.
+The current committed retrieval set contains synthetic questions and is not
+indexed. A collector produced 189 Stack Overflow candidates on 2026-11-24;
+the first 25 are prepared for owner review in `evals/labeling/batch-01.md`.
+There are no confirmed real labels or real-question baseline results yet.
+Confirmed questions will be paraphrased, retain source links and CC BY-SA 4.0
+attribution, and be reported separately from synthetic data. Raw third-party
+responses remain in Git-ignored `data/raw/questions/`. The data collection and
+labeling decision is documented in [ADR 002](adr/002-real-evaluation-paraphrases.md).
+The full seven-step, iterative evaluation method and its quality gates are in
+[`EVAL_PROCESS.md`](EVAL_PROCESS.md).
 The current synthetic access evaluation has 17 distinct questions expanded to
 51 persona cases. The observed result is 0 access leaks and 1.000
 expected-document recall; this measures the synthetic fixture, not real-user
@@ -74,13 +82,13 @@ The stored rows reflect these masking and flagged-state rules.
 
 - Retrieval currently uses PostgreSQL full-text keyword search; embeddings,
   vector search, hybrid ranking, and generated answers are **Planned (M5-M7)**.
-- Current evaluation questions are synthetic and too few to establish real
-  support quality; the real-question set is **Planned (M4)**.
+- Current committed evaluation questions are synthetic and too few to
+  establish real support quality; owner-confirmed real-question labels and
+  baselines remain in progress (M4).
 - Authentication and regional access enforcement use verified EdDSA tokens
   and database query filters. The synthetic corpus was ingested after those
   controls and the zero-leak access evaluation were verified. Demo-user seeding
-  and live authenticated login remain pending a locally configured
-  `SEED_PASSWORD`.
+  and live authenticated R1 login was verified on 2026-11-24.
 - The current PII rules are pattern-based and may miss unusual formats or
   produce false positives; corpus-specific flagged/masking counts are checked
   during M1 re-ingestion.

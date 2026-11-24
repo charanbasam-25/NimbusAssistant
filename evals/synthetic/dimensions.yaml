@@ -1,0 +1,26 @@
+# Select and review tuples before generating questions. Weight choices toward
+# failure categories observed during error coding.
+persona:
+  - guest
+  - R1
+  - R2
+intent:
+  - how_to
+  - troubleshooting
+  - concept
+  - comparison
+  - account_action
+  - off_topic
+phrasing:
+  - short
+  - natural
+  - typo
+  - multi_part
+  - non_native
+answerability:
+  - answerable
+  - unanswerable
+  - adversarial
+
+# Initial selection target: at least 40 reviewed tuples, failure-weighted.
+# For answerable rows, select/read the source page before question generation.

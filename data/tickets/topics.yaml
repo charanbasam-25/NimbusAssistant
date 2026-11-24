@@ -1,0 +1,102 @@
+catalog_version: topics-v1
+
+base_fields:
+  - name: subject
+    type: text
+    required: true
+    max_length: 120
+  - name: description
+    type: textarea
+    required: true
+    max_length: 2000
+
+locked_fields:
+  - region
+  - email
+
+topics:
+  - id: app_error
+    label: App or deploy error
+    description: Deploys failing, 5xx errors, app not starting
+    category: bug
+    queue: platform
+    fields:
+      - name: app_name
+        type: text
+        required: true
+        max_length: 80
+      - name: environment
+        type: select
+        required: false
+        options:
+          - production
+          - staging
+
+  - id: login_access
+    label: Login and access
+    description: Sign-in, tokens, permissions
+    category: access
+    queue: platform
+    fields:
+      - name: auth_method
+        type: select
+        required: false
+        options:
+          - OAuth2
+          - JWT
+          - API key
+          - other
+      - name: error_message
+        type: text
+        required: false
+        max_length: 300
+
+  - id: billing_refund
+    label: Billing and refund
+    description: Invoices, charges, refunds
+    category: billing
+    queue: billing
+    queue_per_region: true
+    fields:
+      - name: invoice_number
+        type: text
+        required: true
+        max_length: 40
+      - name: reason
+        type: select
+        required: false
+        options:
+          - duplicate
+          - not used
+          - wrong plan
+          - other
+
+  - id: security_concern
+    label: Security concern
+    description: Suspected vulnerability or account compromise
+    category: security
+    queue: security
+    notice: Don't paste passwords, keys or card numbers.
+    fields:
+      - name: affected_area
+        type: select
+        required: false
+        options:
+          - app
+          - account
+          - billing
+          - other
+
+  - id: feature_request
+    label: Feature request
+    description: Ideas and missing features
+    category: feature
+    queue: product
+    fields: []
+
+  - id: other
+    label: Other
+    description: Anything else
+    category: other
+    queue: general
+    fields: []
