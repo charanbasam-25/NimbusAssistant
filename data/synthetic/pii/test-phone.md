@@ -8,10 +8,10 @@ pair: null
 canary_facts:
   pii_type: phone
 ---
-This fictional privacy fixture verifies phone-number masking in ordinary hosting-platform prose. The text gives a support agent an example of a value that should not remain visible in a searchable chunk after ingestion.
+Account owners can manage their support contact preferences from the Nimbus Cloud profile page. When a callback is needed, the support agent should use the verified contact method associated with the account and record only that a callback was requested. Do not copy personal phone details into public incident channels or attach them to deployment logs. Keep any follow-up within the authenticated case so the owner can review the history.
 
 Synthetic callback number: +1 (415) 555-2671.
 
-This number is reserved as an example and is not a real customer's contact information. It must not be called or associated with an account. In a real support workflow, contact details should be handled through the protected account interface and retained only when needed. The expected corpus result contains a phone marker instead of the original digits. This synthetic page exists only for the privacy test suite and is not an instruction to contact anyone.
+The number shown is fictional and must not be called or associated with an account. Documentation intended for search should mask phone details unless the digits are essential to the task. If a contact record is exposed in a diagnostic export, remove it from shared copies and follow the account's approved privacy process. This fictional service note illustrates contact handling and does not identify a real customer or support line.
 
 Synthetic document for Nimbus capstone testing. Not real policy.

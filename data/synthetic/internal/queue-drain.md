@@ -8,10 +8,10 @@ pair: null
 canary_facts:
   phrase: MINT-DRAIN-6
 ---
-This fictional internal runbook describes how a service operator can prepare a hosted FastAPI worker queue for a planned maintenance event. Confirm the target queue, current depth, consumer health, and maintenance approval before changing worker capacity. The phrase below is a synthetic retrieval canary and is not a queue name, production command, or instruction to run against a live service.
+Use this runbook before planned maintenance on a Nimbus Cloud worker service. Confirm the target queue, current depth, consumer health, and change approval with the service owner. Schedule the work when incoming traffic is manageable and make sure the on-call engineer can observe the queue throughout the maintenance window. The internal checklist reference is MINT-DRAIN-6; it is documentation metadata, not a queue name or production command.
 
-Notify the service owner, allow active jobs to finish where practical, and monitor the queue until it reaches the agreed safe state. Do not discard pending work simply to meet a maintenance deadline. Capture counts and timestamps without copying customer payloads into the change record. After maintenance, restore the expected worker configuration and verify that new jobs are accepted and completed. Escalate if backlog or error rates rise unexpectedly.
+Notify affected operators, allow active jobs to finish where practical, and monitor the queue until it reaches the approved safe state. Do not discard pending work solely to meet the schedule. Record counts and timestamps in the change case without copying customer payloads. Once maintenance is complete, restore the expected worker capacity and confirm that new jobs are accepted and completed.
 
-Canary phrase: MINT-DRAIN-6.
+If backlog or error rates rise unexpectedly, pause the maintenance and contact the service owner. Capture the observed state and the action taken so the next operator can continue safely. This fictional operational guide is included for documentation testing and is not authorization to change a live queue.
 
 Synthetic document for Nimbus capstone testing. Not real policy.

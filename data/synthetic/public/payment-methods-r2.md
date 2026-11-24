@@ -8,10 +8,10 @@ pair: payment-methods
 canary_facts:
   payment_method: SEPA
 ---
-Use the Nimbus Cloud payment-methods policy when preparing billing details for a hosted FastAPI workspace. This page describes the fictional standard payment option for the listed topic and provides a consistent answer for routine account questions. Confirm the workspace region before applying the canary below; it is a region-specific fact used only for the capstone retrieval exercise, not a real payment-processor configuration.
+Workspace owners manage subscriptions and invoices from the Billing section of the Nimbus Cloud dashboard. The payment method shown there is used for recurring charges and may require confirmation from the account holder's financial institution. Owners should check the billing profile before a renewal and make sure that the account has access to the payment authorization flow.
 
-An account owner should manage billing through the authenticated dashboard and keep payment credentials out of support tickets. A payment attempt may require additional verification from the account's financial institution. If a transaction is declined, check the dashboard's status and contact support with the invoice reference, not the full card or bank-account number. This page does not imply that Nimbus accepts other methods.
+For a workspace billed in region R2, Nimbus Cloud supports SEPA as the standard payment method. An account owner can review the status of a charge and its invoice reference in the dashboard. If a payment is declined, confirm that the billing profile is current and contact the financial institution before opening a support case.
 
-Canary fact: SEPA is the supported payment method for the fictional R2 region.
+Support can investigate a transaction using the workspace name, invoice reference, and approximate charge date. Never include a full card number, bank-account number, security code, or online-banking password in a ticket. These fictional billing details describe the test service only and do not indicate what any real payment provider accepts.
 
 Synthetic document for Nimbus capstone testing. Not real policy.

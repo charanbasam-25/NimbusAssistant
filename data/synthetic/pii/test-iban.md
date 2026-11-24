@@ -8,10 +8,10 @@ pair: null
 canary_facts:
   pii_type: iban
 ---
-This fictional privacy fixture checks that a checksum-valid IBAN-shaped value is removed before a synthetic document becomes searchable. It presents the value in a billing-support context because financial identifiers can otherwise be copied into tickets or indexed alongside unrelated instructions.
+Billing support can investigate a transfer or invoice using the workspace name, invoice reference, transaction date, and amount shown in the account dashboard. Staff should not request a full bank-account identifier in an ordinary support case. If a secure payment workflow needs banking information, the account owner should enter it only through the approved billing interface and confirm the destination before submitting.
 
 Synthetic test IBAN: GB82 WEST 1234 5698 7654 32.
 
-The sample is included for automated validation only and must not be used for a payment, bank transfer, or customer lookup. Support staff should request an invoice reference rather than a complete account identifier. After ingestion, the chunk should contain the standard IBAN marker, while the raw value should be absent from searchable content. This fixture makes that behavior repeatable without using a real person's financial information.
+The value above is fictional test data and must not be used for a transfer, account lookup, or payment. Documents retained for search should not expose complete financial identifiers when the number is unnecessary to answer a service question. Use a masked representation in logs and training examples, and direct account owners to the protected billing form when sensitive details must be changed. This page is synthetic operational guidance, not a banking instruction.
 
 Synthetic document for Nimbus capstone testing. Not real policy.

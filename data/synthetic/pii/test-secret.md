@@ -8,10 +8,10 @@ pair: null
 canary_facts:
   pii_type: secret
 ---
-This fictional security fixture verifies that an API-key-shaped string is masked before it can enter the searchable Nimbus corpus. A developer reviewing a hosted FastAPI deployment should store credentials in a managed secret facility and rotate them if they are accidentally exposed.
+Deployments may require API credentials to connect a hosted FastAPI service to an external integration. Store those values in the platform's managed secret settings and reference them by configuration name; do not place credentials in source code, support tickets, screenshots, or ordinary environment notes. If a secret appears in a shared diagnostic export, revoke or rotate it through the issuing service and review where the value may have been copied.
 
 Synthetic test key: sk-test0123456789abcdefXYZ.
 
-The value is intentionally fake and does not grant access to any service. Do not attempt to authenticate with it, place a real key in this file, or use a production credential in the test suite. The expected ingestion result replaces the string with the secret marker and records only the category count. This page is a privacy canary, not a user guide or a real Nimbus Cloud security policy.
+This string is fictional test text and does not grant access to any service. It must not be used for authentication or replaced with a real credential. Searchable support documents should contain a mask where a secret was detected, while ingestion reports retain only the category count. These security notes describe a synthetic hosting platform and are not an actual Nimbus Cloud policy or credential-management service.
 
 Synthetic document for Nimbus capstone testing. Not real policy.

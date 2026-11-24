@@ -8,10 +8,10 @@ pair: backup-retention
 canary_facts:
   retention_days: 7
 ---
-Use the Nimbus Cloud backup-retention policy when planning recovery for a hosted FastAPI workspace. This page describes the standard retention window for the listed topic and helps an account owner understand how long a routine service backup remains available. Confirm the workspace region before relying on the canary below; the value is a fictional region-specific fact for the capstone retrieval exercise.
+Nimbus Cloud creates routine backups to help workspace owners recover from an accidental change or a service interruption. The retention period begins when a backup is created, and older copies are removed as they pass the published window. Owners can review the latest backup status in the dashboard and should maintain separate application exports when their own recovery plan requires them.
 
-Backups support recovery from ordinary platform incidents, but they do not replace application exports or a tested restore plan. Before a maintenance change, identify which data matters and how the application will validate a recovered copy. The account dashboard displays the workspace's current backup status. For a support request, provide the workspace identifier, approximate backup time, and the affected service without attaching customer records.
+For workspaces in region R1, routine platform backups are retained for 7 days. This window applies to standard workspace backups and does not guarantee that every individual object can be restored to an exact point in time. Before relying on a backup, confirm that the service has completed a recent successful backup and that the application can read restored data.
 
-Canary fact: standard Nimbus Cloud backups in R1 are retained for 7 days.
+If a restore is needed, open a support case with the workspace name, approximate backup time, and affected service. Do not attach customer records or secrets to the request. A support agent will confirm which recovery options are available for the workspace. These fictional operating terms are not a substitute for an organization's own backup and disaster-recovery plan.
 
 Synthetic document for Nimbus capstone testing. Not real policy.

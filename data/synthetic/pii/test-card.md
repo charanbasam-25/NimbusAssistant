@@ -8,10 +8,10 @@ pair: null
 canary_facts:
   pii_type: card
 ---
-This fictional privacy fixture is used to check whether Nimbus masks a payment-card-shaped value before creating searchable chunks. It contains one synthetic test number and no real person's account information. The value appears in a sentence so the ingestion pipeline can verify that detection works across ordinary prose, and any stored passage should contain only a masked representation.
+The Billing page displays a masked payment method for each active Nimbus Cloud subscription. Account owners should use the dashboard's secure payment form to add or update a card and should not send full payment details through support chat or email. When investigating a declined charge, support can locate the transaction using the workspace name, invoice reference, and charge date rather than requesting the complete card number.
 
 Synthetic test card value: 4111 1111 1111 1111.
 
-The card belongs to a widely used payment-testing range and is not valid payment information for a real transaction. Do not use the example to make a purchase or associate it with an account. The purpose of this page is limited to a deterministic capstone privacy check. Its title and tags identify it as synthetic test content rather than a policy document.
+This example is included as fictional documentation data and is not a payment credential or a usable account detail. A searchable support passage should show a masked marker rather than the full number. Store only the minimum transaction information needed to resolve a billing case, restrict access to that case, and remove copied payment details from logs or attachments. These handling notes describe the synthetic test service, not a real payment processor.
 
 Synthetic document for Nimbus capstone testing. Not real policy.

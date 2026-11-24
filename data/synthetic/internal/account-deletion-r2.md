@@ -8,10 +8,10 @@ pair: account-deletion
 canary_facts:
   deletion_retention: Delete after 14 days and retain a GDPR audit log
 ---
-This internal Nimbus Cloud account-deletion runbook helps authorized support staff coordinate a workspace removal request. Confirm the requester is authorized, identify the workspace, and check for an active hold or unresolved billing task before scheduling deletion. The timing below is the region-specific canary for this capstone test, not an actual retention rule or permission to delete a real account.
+Use this runbook when an authorized Nimbus Cloud customer asks support to close a workspace. Verify the requester against the account record, confirm the workspace identifier, and check for a legal hold, open incident, or unresolved invoice before scheduling the request. Explain which deployments and stored settings are included so the owner can export anything they need before the closure date.
 
-Record the case reference, approval source, and planned completion date in the restricted operations record. Tell the requester which resources are in scope and which exports they must complete beforehand. Avoid copying application data into the ticket. After the approved action, verify the workspace status and record the result for audit. Escalate any mismatch between the request and workspace ownership rather than improvising a broader deletion.
+For an R2 workspace, the deletion workflow completes 14 days after the approved request. Record the approval, request date, and target completion date in the restricted operations case. Retain a GDPR audit log of the approval and completion event according to the internal record schedule. On the scheduled date, a second support operator confirms the workspace and scope before deletion, then records the completion timestamp.
 
-Canary fact: the fictional R2 workflow deletes the workspace after 14 days and retains a GDPR audit log.
+Do not copy application content, credentials, or unnecessary personal information into the case. If ownership is unclear or an account is subject to a hold, pause the request and contact the designated reviewer rather than extending the deletion scope. This internal procedure is fictional training material and does not authorize action on a real service.
 
 Synthetic document for Nimbus capstone testing. Not real policy.

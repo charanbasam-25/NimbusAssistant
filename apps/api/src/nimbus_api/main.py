@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import os
 from collections.abc import Iterator
+from functools import lru_cache
 from typing import Annotated, Any
 
 import jwt
@@ -41,6 +42,7 @@ def get_db_connection() -> Iterator[psycopg.Connection[Any]]:
         raise HTTPException(status_code=503, detail="Database is unavailable") from error
 
 
+@lru_cache(maxsize=1)
 def get_token_settings() -> TokenSettings:
     """Load keys only for routes that need token signing or verification."""
     return load_token_settings(os.environ, base_dir=REPOSITORY_ROOT)
@@ -55,6 +57,11 @@ def _unauthorized() -> HTTPException:
     )
 
 
+def _authentication_not_configured() -> HTTPException:
+    """Return a service error when configured JWT key files cannot be read."""
+    return HTTPException(status_code=503, detail="Authentication is not configured")
+
+
 def current_claims(
     authorization: Annotated[str | None, Header()] = None,
 ) -> dict[str, Any] | None:
@@ -66,8 +73,11 @@ def current_claims(
         raise _unauthorized()
     try:
         settings = get_token_settings()
+    except OSError as error:
+        raise _authentication_not_configured() from error
+    try:
         return verify_token(settings, token.strip())
-    except (jwt.PyJWTError, OSError, RuntimeError, ValueError) as error:
+    except (jwt.PyJWTError, ValueError) as error:
         raise _unauthorized() from error
 
 

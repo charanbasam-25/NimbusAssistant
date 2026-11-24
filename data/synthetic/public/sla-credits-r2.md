@@ -8,10 +8,10 @@ pair: sla-credits
 canary_facts:
   service_credit: 25% below 99.95%
 ---
-Use the Nimbus Cloud availability-credit policy when reviewing a monthly service report for a hosted FastAPI workspace. This page describes the fictional credit condition for the listed topic and is intended to help account owners interpret an availability result. Confirm the workspace region and measurement period before applying the canary below; it is a test fact for retrieval, not an actual service-level agreement.
+Workspace owners can review the monthly availability report in the Nimbus Cloud dashboard. The report identifies the measurement period and the service components included in the calculation. If a displayed result appears inconsistent with an incident record, the owner may open a billing case and include the workspace name, report period, and incident reference. A reported interruption does not automatically create a credit.
 
-Availability is measured over the published period using the service definition in the account dashboard. A credit request should include the workspace identifier, dates, and report reference. Do not estimate a credit from a brief interruption or assume that a credit is automatic. Exclusions and calculation rules would be defined in an actual contract; this synthetic page does not create contractual rights or promise compensation.
+For region R2, an eligible service credit is 25% when measured monthly availability falls below 99.95%. Support reviews the published report and confirms whether the affected service meets the stated condition. The credit, if approved, is applied to the account rather than paid as cash and appears in the billing history for the applicable workspace.
 
-Canary fact: R2 credits are 25% when measured availability is below 99.95%.
+Owners should retain the report and any relevant status notices until the review is complete. Do not send payment credentials or customer payloads in the case. These fictional terms are for the Nimbus Cloud test corpus and do not create contractual rights, a real service-level agreement, or a promise of compensation.
 
 Synthetic document for Nimbus capstone testing. Not real policy.

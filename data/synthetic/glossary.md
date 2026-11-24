@@ -8,8 +8,10 @@ pair: null
 canary_facts:
   term: workspace
 ---
-This fictional glossary defines a few terms used in Nimbus Cloud capstone documents. A workspace is the account-scoped environment in which an owner configures a hosted FastAPI service. A deployment is one published version of that service. A canary fact is a synthetic, distinctive value used to check whether retrieval selected the intended passage. A runbook is an internal checklist for a support or operations task, while a policy page describes a fictional user-facing service condition.
+This glossary explains terms used in Nimbus Cloud's fictional hosting documentation. A workspace is the account-scoped environment where an owner configures a hosted FastAPI service. A deployment is one published version of that service, while a revision is a specific code and configuration state. A runbook is an internal checklist for support or operations staff. A policy page describes a customer-facing service condition, such as billing or backup retention.
 
-Glossary entries help a retrieval evaluation distinguish explanatory vocabulary from authoritative answers. This page is intentionally public and global, but it should never be cited as the source of a region-specific refund, pricing, residency, or retention rule. When a question asks for such a condition, use the matching policy page and confirm the caller's access persona before returning evidence.
+The term workspace appears across the account, deployment, and support pages, but its meaning does not replace a page's specific service rules. This public glossary is useful for understanding terminology; it is not the source of a regional refund, price, residency, or retention condition. Use the relevant policy page for those details and confirm the caller's access before sharing internal material.
+
+When a support request refers to a deployment, ask for the workspace name and deployment time rather than a password or secret. These definitions are intended to make the fictional documentation consistent and should not be interpreted as descriptions of a real hosting provider.
 
 Synthetic document for Nimbus capstone testing. Not real policy.

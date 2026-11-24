@@ -8,10 +8,10 @@ pair: null
 canary_facts:
   phrase: SABLE-ROLLBACK-9
 ---
-This fictional internal runbook describes a cautious rollback for a hosted FastAPI deployment when a release causes a verified regression. Confirm the deployment identifier, affected service, and last known healthy revision before changing production state. The distinctive phrase below is a synthetic retrieval canary, not a real command or credential. Preserve logs needed to understand the failure, but remove customer payloads and secrets from any copied excerpt.
+Use this internal procedure when monitoring confirms that a recent Nimbus Cloud deployment caused a service regression. The incident lead first records the deployment identifier, affected routes, start time, and last revision known to be healthy. Confirm that the rollback has approval and identify the operator who will make the change. Preserve diagnostic logs needed for review, but remove secrets and customer payloads from copied excerpts.
 
-The response lead should announce the maintenance action in the approved internal channel, identify the operator, and state the rollback checkpoint. Restore only the last known healthy revision, then run the service health check and a representative smoke test. If recovery does not meet the expected behavior, stop further changes and escalate with timestamps and observed results. Record the final status in the incident case.
+The response lead announces the change in the approved operations channel and records the rollback checkpoint. Restore the last healthy revision through the deployment controls, then run the health check and a representative smoke test. The checklist is identified internally by SABLE-ROLLBACK-9; this label is a documentation reference, not a shell command or credential.
 
-Canary phrase: SABLE-ROLLBACK-9.
+If recovery does not restore expected behavior, stop additional changes and escalate with timestamps and observed results. Record the final state in the incident case and keep the customer-facing update aligned with verified facts. This fictional runbook is for documentation testing and must not be used to operate a real deployment.
 
 Synthetic document for Nimbus capstone testing. Not real policy.

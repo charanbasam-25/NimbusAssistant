@@ -41,8 +41,14 @@ def test_pgvector_schema_is_ready_after_alembic_upgrade() -> None:
             """
         ).fetchone()
         migration = connection.execute("SELECT version_num FROM alembic_version").fetchone()
+        email_index = connection.execute(
+            "SELECT indexdef FROM pg_indexes WHERE indexname = 'users_email_lower_idx'"
+        ).fetchone()
 
     assert extensions == {"vector", "pgcrypto"}
     assert user_region_nullable == (False,)
     assert flagged_column == (True,)
     assert migration == (expected_head,)
+    assert email_index is not None
+    assert "UNIQUE INDEX users_email_lower_idx" in email_index[0]
+    assert "lower(email)" in email_index[0]

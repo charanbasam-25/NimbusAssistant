@@ -43,6 +43,8 @@ class FakeConnection:
 
 @pytest.fixture
 def client(monkeypatch):
+    original_settings_loader = main.get_token_settings
+    original_settings_loader.cache_clear()
     connection = FakeConnection()
     main.app.dependency_overrides[main.get_db_connection] = lambda: connection
     private_key, public_key = generate_keypair()
@@ -51,6 +53,7 @@ def client(monkeypatch):
     with TestClient(main.app) as test_client:
         yield test_client, connection, settings
     main.app.dependency_overrides.clear()
+    original_settings_loader.cache_clear()
 
 
 def test_guest_search_uses_global_public_scope(client) -> None:
@@ -216,7 +219,12 @@ def test_guest_does_not_load_token_settings(client, monkeypatch) -> None:
 
 
 def test_invalid_authentication_raises_a_fresh_exception_each_time(monkeypatch) -> None:
-    monkeypatch.setattr(main, "get_token_settings", lambda: (_ for _ in ()).throw(RuntimeError()))
+    monkeypatch.setattr(main, "get_token_settings", lambda: TokenSettings(public_key_pem=""))
+    monkeypatch.setattr(
+        main,
+        "verify_token",
+        lambda settings, token: (_ for _ in ()).throw(jwt.DecodeError("bad token")),
+    )
     exceptions = []
     for _ in range(2):
         with pytest.raises(main.HTTPException) as raised:
@@ -225,3 +233,34 @@ def test_invalid_authentication_raises_a_fresh_exception_each_time(monkeypatch) 
 
     assert exceptions[0] is not exceptions[1]
     assert exceptions[0].headers == {"WWW-Authenticate": "Bearer"}
+
+
+@pytest.mark.parametrize("error", [FileNotFoundError, PermissionError])
+def test_unreadable_jwt_key_files_return_configuration_503(client, monkeypatch, error) -> None:
+    test_client, _, _ = client
+
+    def unreadable_settings():
+        raise error("key unavailable")
+
+    monkeypatch.setattr(main, "get_token_settings", unreadable_settings)
+    response = test_client.get("/me", headers={"Authorization": "Bearer otherwise-valid-shape"})
+
+    assert response.status_code == 503
+    assert response.json() == {"detail": "Authentication is not configured"}
+
+
+def test_token_settings_are_cached_and_cache_is_clearable(monkeypatch) -> None:
+    original_settings_loader = main.get_token_settings
+    original_settings_loader.cache_clear()
+    loads = []
+    settings = TokenSettings(public_key_pem="test-public-key")
+    monkeypatch.setattr(
+        main, "load_token_settings", lambda *args, **kwargs: loads.append(settings) or settings
+    )
+
+    try:
+        assert main.get_token_settings() is settings
+        assert main.get_token_settings() is settings
+        assert len(loads) == 1
+    finally:
+        original_settings_loader.cache_clear()

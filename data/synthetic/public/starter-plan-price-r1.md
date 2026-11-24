@@ -8,10 +8,10 @@ pair: starter-plan-price
 canary_facts:
   monthly_price: USD 9/month
 ---
-Use the Nimbus Cloud starter-plan pricing policy when estimating the recurring cost of a hosted FastAPI workspace. This page describes the standard monthly list price for the listed topic and gives account owners a consistent reference for the capstone test. Confirm the account region and selected plan before applying the canary below; it is a fictional region-specific value, not a checkout quote or an actual offer.
+The Nimbus Cloud Starter plan is intended for small hosted FastAPI services that need a managed deployment and basic workspace controls. The plan price is billed monthly per workspace. Before subscribing, the owner should review the selected region, billing currency, included usage, and any optional add-ons shown in checkout. The amount displayed on the final invoice is the record for a particular account and billing period.
 
-The account dashboard is the authoritative place to review a real invoice, taxes, usage, and any active credit. This page does not calculate add-on charges or promise a particular exchange rate. If a billing question remains, include the plan name and invoice period when opening a support case. Do not infer regional pricing from a different workspace or from a search result that omits its region.
+In region R1, the fictional Starter plan costs USD 9 per month. This recurring list price does not include optional services or any account-specific credits. The Billing page shows the subscription renewal date and links to invoices, so an owner can confirm the amount charged without sending payment details to support.
 
-Canary fact: the fictional R1 starter plan is priced at USD 9 per month.
+For a pricing question, provide the plan name and invoice period through an authenticated support case. Do not infer the cost of a different region from this page, and do not assume a currency conversion rate from a third-party source. These fictional details are examples for Nimbus Cloud documentation tests, not a current offer or checkout quote.
 
 Synthetic document for Nimbus capstone testing. Not real policy.

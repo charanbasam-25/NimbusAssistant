@@ -4,6 +4,7 @@ from collections import Counter, defaultdict
 from pathlib import Path
 
 import pytest
+import yaml
 from ingest_corpus import split_front_matter, validate_synthetic_manifest
 
 ROOT = Path(__file__).resolve().parents[1]
@@ -37,7 +38,7 @@ def test_synthetic_manifest_has_38_documents_and_17_questions() -> None:
     assert counts == {"policy": 14, "runbook": 13, "poisoned": 5, "pii": 5, "glossary": 1}
 
 
-def test_every_pair_shares_one_question_and_body_except_canary_fact() -> None:
+def test_every_pair_shares_one_question_and_body_except_regional_fact() -> None:
     manifest = json.loads(MANIFEST.read_text(encoding="utf-8"))
     pairs: dict[str, list[dict]] = defaultdict(list)
     for entry in manifest["documents"]:
@@ -51,13 +52,12 @@ def test_every_pair_shares_one_question_and_body_except_canary_fact() -> None:
         for entry in pair_entries:
             metadata, body = split_front_matter((CORPUS / entry["source_path"]).read_text())
             assert metadata["canary_facts"] == entry["expected_canary_facts"]
-            bodies.append(
-                body.replace(
-                    next(line for line in body.splitlines() if line.startswith("Canary fact:")),
-                    "Canary fact: [REGIONAL VALUE].",
-                )
-            )
-        assert bodies[0] == bodies[1]
+            bodies.append(body.splitlines())
+        changed_lines = [
+            (left, right) for left, right in zip(bodies[0], bodies[1], strict=True) if left != right
+        ]
+        assert len(changed_lines) == 1
+        assert "R1" in changed_lines[0][0] and "R2" in changed_lines[0][1]
 
 
 def test_every_synthetic_document_has_the_required_body_length() -> None:
@@ -94,4 +94,20 @@ def test_synthetic_validation_rejects_missing_file(tmp_path) -> None:
     manifest_path.write_text(json.dumps(data), encoding="utf-8")
 
     with pytest.raises(ValueError, match="source file does not exist"):
+        validate_synthetic_manifest(manifest_path)
+
+
+@pytest.mark.parametrize("banned_phrase", ["canary", "retrieval exercise"])
+def test_synthetic_validation_rejects_old_eval_language(tmp_path, banned_phrase) -> None:
+    manifest_path, entry = _single_document_fixture(tmp_path)
+    source = tmp_path / entry["source_path"]
+    metadata, body = split_front_matter(source.read_text(encoding="utf-8"))
+    disclaimer = "Synthetic document for Nimbus capstone testing. Not real policy."
+    body = body.replace(disclaimer, f"{banned_phrase}.\n\n{disclaimer}")
+    source.write_text(
+        "---\n" + yaml.safe_dump(metadata, sort_keys=False) + "---\n" + body,
+        encoding="utf-8",
+    )
+
+    with pytest.raises(ValueError, match="must not contain canary or retrieval exercise"):
         validate_synthetic_manifest(manifest_path)

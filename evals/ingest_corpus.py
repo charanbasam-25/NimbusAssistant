@@ -158,6 +158,8 @@ def validate_synthetic_manifest(manifest_path: Path) -> tuple[dict, list[Synthet
                 )
         if not body.endswith(SYNTHETIC_ENDING):
             raise ValueError(f"{path}: body must end with the synthetic-document disclaimer")
+        if re.search(r"\bcanary\b|retrieval exercise", body, re.IGNORECASE):
+            raise ValueError(f"{path}: body must not contain canary or retrieval exercise")
         word_count = len(re.findall(r"\b[\w'-]+\b", body))
         if not 120 <= word_count <= 300:
             raise ValueError(f"{path}: body must contain 120-300 words (found {word_count})")

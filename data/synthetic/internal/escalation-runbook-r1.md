@@ -8,10 +8,10 @@ pair: escalation-runbook
 canary_facts:
   identifier: CEDAR-7
 ---
-This internal Nimbus Cloud escalation runbook helps support engineers route a complex hosted FastAPI workspace issue after first-line troubleshooting. Confirm the customer's workspace region, current impact, and existing case before escalating. Keep the incident summary concise, distinguish observed symptoms from assumptions, and include only the diagnostic details needed by the receiving team. The identifier below is the region-specific canary for this capstone exercise; it is not a real queue or operating instruction.
+When first-line troubleshooting cannot resolve a hosted FastAPI workspace issue, use this runbook to route the case to the next support team. Confirm the customer's region, current impact, and existing case before creating an escalation. Summarize what the user observes, when it began, and which checks have already been completed. Separate confirmed behavior from hypotheses so the receiving engineer can continue without repeating work.
 
-Before handoff, record the service affected, when the issue began, the mitigation attempted, and the next requested action. Do not copy credentials, personal data, or customer payloads into the escalation note. If the issue affects several workspaces, describe the scope without listing unrelated account details. The receiving team should acknowledge the case and preserve a link to the original support record.
+For an R1 escalation, use the routing identifier CEDAR-7 in the internal handoff record. Include the affected service, mitigation attempted, and the specific decision or action needed from the next team. The receiving team should acknowledge the handoff and preserve a link to the original customer case.
 
-Canary fact: the R1 escalation identifier is CEDAR-7.
+Do not copy credentials, private payloads, or unrelated account details into the escalation note. If several workspaces are affected, state the approximate scope and provide references through the approved case system. If the account region or ownership is uncertain, pause and ask the queue lead to confirm routing before sharing case details. This fictional runbook is not an operating instruction for a real support organization.
 
 Synthetic document for Nimbus capstone testing. Not real policy.

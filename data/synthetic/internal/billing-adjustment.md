@@ -8,10 +8,10 @@ pair: null
 canary_facts:
   phrase: KITE-ADJUST-3
 ---
-This fictional internal runbook supports a careful review of a billing-adjustment request for a hosted FastAPI workspace. Confirm the account owner, invoice period, and reason for the request before routing it to an authorized billing reviewer. The phrase below is a test canary for Nimbus retrieval evaluation and is not an adjustment code or a real approval.
+Use this internal process when an account owner asks Nimbus Cloud to review a billing adjustment. Confirm account ownership, workspace, invoice period, and the reason for the request before routing it to an authorized billing reviewer. Check the account record and published service terms, then document the evidence that supports the proposed outcome. The case reference KITE-ADJUST-3 identifies this fictional procedure in the internal index.
 
-Compare the request with the account record and document the evidence used to reach a decision. Do not copy full payment details, passwords, or unrelated personal information into the case. A second reviewer should verify any proposed change before the account record is updated. Send the customer a concise outcome through the approved channel and retain the case reference for later questions. Escalate any mismatch rather than inventing a credit.
+A second reviewer must verify any proposed credit or invoice correction before the billing record is changed. The reviewer should confirm the amount, currency, affected period, and customer communication plan. Do not promise an adjustment while the request is under review, and do not infer eligibility from a similar case without checking the current account evidence.
 
-Canary phrase: KITE-ADJUST-3.
+Never copy full payment details, passwords, or unrelated personal information into the case. Send the final decision through the approved account channel and retain the reference for follow-up. Escalate discrepancies rather than inventing a credit. This fictional runbook is documentation material, not a real billing authorization.
 
 Synthetic document for Nimbus capstone testing. Not real policy.
